@@ -1,0 +1,11 @@
+- insert:
+    - id: ultracode-view
+      name: "@srelka/dsh-ultracode"
+    - id: preset-ultracode
+      name: "@srelka/dsh-ultracode/inherit"
+      config:
+        basePreset: standard
+        maxConcurrentAgents: 4
+        defaultAgentLimit: 12
+        maxTotalAgents: 40
+        replacementTimeoutMs: 30000

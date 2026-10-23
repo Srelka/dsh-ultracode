@@ -1,0 +1,79 @@
+{
+  "name": "@srelka/dsh-ultracode",
+  "version": "1.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Derive Ultracode from the effective standard preset at startup; override orchestration only.",
+  "license": "MIT",
+  "dependencies": {
+    "zod": "4.4.3"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./preset": "./preset.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./preset/locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./preset/icon": "./icon.svg",
+    "./inherit": "./inherit.js",
+    "./inherit/locale/*.json": "./locale/*.json",
+    "./inherit/icon": "./icon.svg",
+    "./unavailable": "./unavailable.js",
+    "./unavailable/locale/*.json": "./locale/*.json",
+    "./unavailable/icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "preset.js",
+    "model.js",
+    "workflow.js",
+    "client.js",
+    "cordis.patch.yml",
+    "icon.svg",
+    "locale/*.json",
+    "LICENSE",
+    "docs/*",
+    "inherit.js",
+    "derive.js",
+    "host-api.js",
+    "unavailable.js"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-workspace",
+        "@deepseek-ai/dsh-api-job-controller"
+      ]
+    }
+  },
+  "engines": {
+    "dsh": ">=0.2.1-rc.2 <0.3.0-0"
+  },
+  "author": "Srelka",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Srelka/dsh-ultracode.git"
+  },
+  "homepage": "https://github.com/Srelka/dsh-ultracode#readme",
+  "bugs": {
+    "url": "https://github.com/Srelka/dsh-ultracode/issues"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "workflow",
+    "multi-agent",
+    "ultracode"
+  ],
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  }
+}
