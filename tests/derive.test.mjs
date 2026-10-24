@@ -181,6 +181,8 @@ test("host helper API is resolved by Loader and fails on an unsupported contract
           defineTool: fn,
           validateJsonSchemaValue: fn,
           validateMeta: fn,
+          scopeOf: fn,
+          scopeChainOf: fn,
         };
       },
     },
@@ -190,6 +192,7 @@ test("host helper API is resolved by Loader and fails on an unsupported contract
   assert.deepEqual(names, [
     "@deepseek-ai/dsh-tools",
     "@deepseek-ai/dsh-workflow-ptc",
+    "@deepseek-ai/dsh-scope",
   ]);
   await assert.rejects(
     loadHostApi({ loader: { import: async () => ({}) } }),

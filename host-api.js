@@ -2,14 +2,17 @@
 export async function loadHostApi(ctx) {
   if (typeof ctx.loader?.import !== "function")
     throw new Error("Ultracode requires the host Loader import API.");
-  const [tools, workflow] = await Promise.all([
+  const [tools, workflow, scope] = await Promise.all([
     ctx.loader.import("@deepseek-ai/dsh-tools"),
     ctx.loader.import("@deepseek-ai/dsh-workflow-ptc"),
+    ctx.loader.import("@deepseek-ai/dsh-scope"),
   ]);
   const api = {
     defineTool: tools.defineTool,
     validateJsonSchemaValue: tools.validateJsonSchemaValue,
     validateMeta: workflow.validateMeta,
+    scopeOf: scope.scopeOf,
+    scopeChainOf: scope.scopeChainOf,
   };
   for (const [name, value] of Object.entries(api))
     if (typeof value !== "function")
