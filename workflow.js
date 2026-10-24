@@ -2,6 +2,7 @@ import { Script } from "node:vm";
 import { randomUUID } from "node:crypto";
 import { resolveScriptFile } from "./script-file.js";
 import { checkpointScript, resumeEntries, CHECKPOINT_RECORD } from "./checkpoint.js";
+import { DIAGNOSTIC_RECORD, readMemberDiagnostic } from "./diagnostics.js";
 import {
   latestAccepted,
   view,
@@ -14,13 +15,13 @@ const isActive = (status) => status === "running" || status === "stopping";
 export function backgroundWorkflowOutput(ctx, native, agent) {
   return {
     ...native,
-    description: native.description + " For running Ultracode workflows this is a non-blocking status read. End the current turn when no independent work remains; completion will wake you automatically.",
+    description: native.description + " For running Ultracode workflows this is a non-blocking status read. After answering the user's request, end the turn; completion will wake you automatically.",
     output: {
       ...native.output,
       render(args, value) {
         const content = native.output.render(args, value);
         return value.job?.kind === "workflow" && isActive(value.job.status)
-          ? [...content, { type: "text", text: "Workflow continues in the background. Do not poll or wait again. Finish this turn with a progress update; completion will wake you to collect the result." }]
+          ? [...content, { type: "text", text: "Workflow continues in the background. Do not poll or wait again. Complete any independent request from the user, then end this turn; completion will wake you to collect the result." }]
           : content;
       },
     },
@@ -30,12 +31,13 @@ export function backgroundWorkflowOutput(ctx, native, agent) {
     },
   };
 }
-const outcome = (result) =>
+const outcome = (result, issues = []) =>
   result.stopReason === "completed"
     ? {
         status: "completed",
-        detail: `${result.agentsStarted} agents`,
-        result: JSON.stringify(result.value ?? null, null, 2).slice(0, 50000),
+        detail: `${result.agentsStarted} agents${issues.length ? `; ${issues.length} did not complete` : ""}`,
+        result: JSON.stringify(result.value ?? null, null, 2).slice(0, 50000) +
+          (issues.length ? `\n\nUltracode: the script returned, but these members did not complete: ${issues.map(m=>m.label).join(", ")}. Inspect ultracode_workflows for their causes. Do not report full success without verifying how these tasks were resolved.` : ""),
       }
     : result.stopReason === "cancelled"
       ? { status: "killed" }
@@ -48,7 +50,16 @@ export function createWorkflowOwner(
   { validateMeta, validateJsonSchemaValue, defineTool, appendPluginRecord },
 ) {
   const active = new Map(),
-    locks = new Map();
+    locks = new Map(), diagnosticReads = new Map();
+  function recordDiagnostic(session, runId, member) {
+    const key = `${session.id}:${runId}:${member.childId}`;
+    if (diagnosticReads.has(key)) return diagnosticReads.get(key);
+    const pending = readMemberDiagnostic(ctx, member.childId, member.status).then(diagnostic => {
+      appendPluginRecord(session, DIAGNOSTIC_RECORD, { version: 1, runId, seq: member.seq, childId: member.childId, diagnostic });
+    }).catch(error => ctx.logger.warn(`Ultracode could not record member diagnostic: ${String(error)}`));
+    diagnosticReads.set(key, pending);
+    return pending;
+  }
   const onMember = (type, info, member) => {
     const entry = active.get(info.id);
     if (!entry) return;
@@ -65,6 +76,16 @@ export function createWorkflowOwner(
           }
         : { outcome: member.outcome }),
     });
+    if (type.endsWith("start"))
+      entry.members.set(member.seq, { ...member, seq: logical?.index ?? member.seq, status: "running" });
+    else {
+      const known = entry.members.get(member.seq);
+      if (known) {
+        known.status = member.outcome;
+        if (member.outcome !== "completed")
+          entry.diagnostics.push(recordDiagnostic(entry.session, info.id, known));
+      }
+    }
   };
   ctx.on("workflow/agent-start", (info, member) =>
     onMember("tool-workflow/agent-start", info, member),
@@ -103,6 +124,7 @@ export function createWorkflowOwner(
       for (const entry of runs) entry.run.cancel("Ultracode plugin unloaded");
       await Promise.allSettled(runs.map((e) => e.run.dispose()));
       active.clear();
+      diagnosticReads.clear();
     },
     "Ultracode: owned runs",
   );
@@ -174,7 +196,7 @@ export function createWorkflowOwner(
           parent: agent,
           maxTotalAgents: receipt.agentLimit,
         });
-        const entry = { run, session: agent.session, job, marker, calls: new Map() };
+        const entry = { run, session: agent.session, job, marker, calls: new Map(), members: new Map(), diagnostics: [] };
         try {
           agent.session.append("tool-workflow/run-start", {
             runId: run.id,
@@ -188,6 +210,7 @@ export function createWorkflowOwner(
           throw error;
         }
         const done = run.result.then(async (result) => {
+          await Promise.all(entry.diagnostics);
           try {
             await run.dispose();
           } catch (error) {
@@ -203,7 +226,7 @@ export function createWorkflowOwner(
             runId: run.id,
             stopReason: result.stopReason,
           });
-          return outcome(result);
+          return outcome(result, [...entry.members.values()].filter(m => m.status !== "completed"));
         });
         return {
           cancel: (reason) => run.cancel(reason || "Workflow cancelled"),
@@ -221,6 +244,10 @@ export function createWorkflowOwner(
   return {
     reconcile(agent) {
       const known = new Set(ctx.jobs.list(agent.id).map((job) => job.id));
+      for (const run of Object.values(state(agent).runs))
+        for (const member of run.members)
+          if (["failed", "cancelled", "interrupted"].includes(member.status) && !member.diagnostic)
+            void recordDiagnostic(agent.session, run.id, member);
       for (const workflow of view(state(agent)).workflows)
         for (const r of workflow.revisions) {
           if (
@@ -303,13 +330,13 @@ export function createWorkflowOwner(
         parameters,
         description:
           native.description +
-          "\nUltracode: use script_path for substantive workflows; write the .js file with export const meta first, then call this tool using the short path. Legacy inline script + meta remains supported. Execution is always background. Revisions join the previous execution before starting; resume:true replays the exact completed prefix. Preserve the selected model/effort.",
+          "\nUltracode: use script_path for substantive workflows; write the .js file with export const meta first, then call this tool using the short path. Legacy inline script + meta remains supported. Execution is always background. Successful dispatch concludes this turn, so communicate the plan first and dispatch as the final action. New user requests remain available while the workflow runs. Revisions join the previous execution before starting; resume:true replays the exact completed prefix. Preserve the selected model/effort.",
         output: {
           schema: { type: "object", additionalProperties: true },
           render: (_args, value) => [
             {
               type: "text",
-              text: `Workflow started in background. ${JSON.stringify(value)}\nYou may finish this turn; completion wakes you. Do not busy-poll. Use job_output after completion to read the result. Retain workflowId and revision when revising this task. Cached prefix calls do not spawn agents. Native child numbers restart per execution; inspect ultracode_workflows for the actual logical labels and reused members before deciding a child is duplicated.`,
+              text: `Workflow started in background. ${JSON.stringify(value)}\nThis dispatch concludes the current turn; completion wakes you. On a new user request, handle independent work without cancelling this workflow. Do not busy-poll or duplicate delegated work. Use job_output after completion to read the result. Retain workflowId and revision when revising this task. Cached prefix calls do not spawn agents. Native child numbers restart per execution; inspect ultracode_workflows for the actual logical labels and reused members before deciding a child is duplicated.`,
             },
           ],
           presentationMeta: (_args, value) => ({ ultracode: value.ultracode }),
@@ -324,6 +351,8 @@ export function createWorkflowOwner(
             throw new Error(
               "Only the owning root agent may orchestrate Ultracode workflows.",
             );
+          if (typeof exec.concludeTurn !== "function")
+            throw new Error("Ultracode requires the host tool concludeTurn API; no workflow was started.");
           exec.signal.throwIfAborted();
           if (args.script_path !== undefined) {
             if (args.script !== undefined || args.meta !== undefined) throw new Error("Use script_path OR inline script and meta, not both.");
@@ -413,7 +442,7 @@ export function createWorkflowOwner(
                 provider: agent.options.provider, model: agent.options.model, reasoningEffort: agent.options.reasoningEffort,
               });
               const cached = resume && current ? resumeEntries(state(agent), current.runId, route) : [];
-              return start(agent, clean, exec, {
+              const receipt = start(agent, clean, exec, {
                 workflowId: workflow_id || exec.callId,
                 revision: (current?.number ?? 0) + 1,
                 reason: change_reason || "",
@@ -425,6 +454,8 @@ export function createWorkflowOwner(
                 title: clean.meta.description || clean.meta.name,
                 phases: (clean.meta.phases ?? []).map(p => p.title),
               }, cached, route);
+              exec.concludeTurn();
+              return receipt;
             },
           );
         },

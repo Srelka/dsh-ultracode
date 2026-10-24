@@ -19,7 +19,7 @@ test("workflow status reads never hold the root turn open; other jobs retain nat
 function harness() {
   let state = emptyState({ agentPreset: "ultracode" }),
     seq = 0;
-  const order = [],
+  const conclusions = [], order = [],
     jobs = new Map(),
     runs = new Map();
   const agent = {
@@ -131,7 +131,7 @@ function harness() {
     },
   };
   const tool = owner.build(native, agent);
-  async function invoke(overrides = {}) {
+  async function invoke(overrides = {}, execution = {}) {
     const callId = "call-" + seq,
       args = {
         meta: { name: "test", description: "任务" },
@@ -149,6 +149,8 @@ function harness() {
         callId,
         rootCallId: callId,
         signal: new AbortController().signal,
+        concludeTurn() { conclusions.push(callId); },
+        ...execution,
       });
       agent.session.append("tool/result", {
         message: { source: { callId }, content: [] },
@@ -174,11 +176,37 @@ function harness() {
     order,
     jobs,
     runs,
+    conclusions,
     get state() {
       return state;
     },
   };
 }
+test("dispatch concludes only its own turn; later independent work leaves the run intact", async () => {
+  const h = harness(), a = await h.invoke();
+  assert.equal(h.conclusions.length, 1);
+  const tool = backgroundWorkflowOutput(h.ctx, {
+    description: "Read job", output: { render: () => [] },
+    execute: async args => ({ job: h.jobs.get(args.job_id), wait: args.wait }),
+  }, h.agent);
+  const value = await tool.execute({ job_id: a.jobId, wait: true }, {
+    concludeTurn() { assert.fail("A new user request must not be forced to end by a status read"); },
+  });
+  assert.equal(value.wait, false);
+  assert.equal(h.jobs.get(a.jobId).status, "running");
+  assert.deepEqual(h.order, ["start run-0"]);
+});
+test("missing host turn API rejects before starting or replacing a workflow", async () => {
+  const h = harness();
+  await assert.rejects(h.invoke({}, { concludeTurn: undefined }), /concludeTurn API/);
+  assert.equal(h.runs.size, 0);
+  assert.equal(h.conclusions.length, 0);
+  const a = await h.invoke();
+  await assert.rejects(h.invoke({ workflow_id: a.ultracode.workflowId, expected_revision: 1, change_reason: "调整" }, { concludeTurn: undefined }), /concludeTurn API/);
+  assert.equal(h.jobs.get(a.jobId).status, "running");
+  assert.equal(h.runs.size, 1);
+  assert.equal(h.conclusions.length, 1);
+});
 test("malformed replacement is rejected before the old execution is cancelled", async () => {
   const h = harness(),
     a = await h.invoke();
@@ -202,6 +230,7 @@ test("malformed replacement is rejected before the old execution is cancelled", 
     /invalid meta/,
   );
   assert.deepEqual(h.order, ["start run-0"]);
+  assert.equal(h.conclusions.length, 1);
 });
 test("stale revision and excessive cap cannot affect active work", async () => {
   const h = harness(),
@@ -227,6 +256,7 @@ test("replacement joins cancellation and cleanup before starting the new run", a
       agent_limit: 1,
     });
   assert.equal(b.ultracode.revision, 2);
+  assert.equal(h.conclusions.length, 2);
   assert.deepEqual(h.order, [
     "start run-0",
     "cancel run-0",

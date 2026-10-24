@@ -1,4 +1,5 @@
 import { CHECKPOINT_RECORD, foldCheckpoint } from "./checkpoint.js";
+import { DIAGNOSTIC_RECORD } from "./diagnostics.js";
 // Optional checkpoints are ignorable plugin records; legacy history is retained.
 export const PROJECTION_KEY = "ultracode";
 export const INTERRUPTED_DETAIL =
@@ -10,6 +11,7 @@ export const emptyState = (header) => ({
   jobs: {},
   reads: {},
   checkpoints: {},
+  controls: {},
 });
 const textOf = (message) =>
   (message?.content ?? [])
@@ -31,6 +33,11 @@ export function fold(state, event) {
   if (event.type === CHECKPOINT_RECORD) return foldCheckpoint(state, event);
   const d = event.data ?? {},
     time = event.time ?? 0;
+  if (event.type === DIAGNOSTIC_RECORD && event.ignorable === true && d.version === 1 && safeRecord(d.diagnostic))
+    return patchRun(state, d.runId, r => ({ ...r, members: r.members.map(m =>
+      m.seq === d.seq && m.childId === d.childId && !(d.diagnostic.kind === "unknown" && m.diagnostic) &&
+      !(m.diagnostic?.kind === "parent_cancelled" && d.diagnostic.kind === "cancelled")
+        ? { ...m, diagnostic: d.diagnostic } : m) }));
   if (event.type === "agent-preset/selected")
     return { ...state, enabled: d.agentPreset === "ultracode" };
   if (event.type === "tool/call") {
@@ -43,6 +50,9 @@ export function fold(state, event) {
       }
     }
     if (!safeRecord(a)) a = {};
+    if (state.enabled && d.name === "interrupt_agent" && typeof a.agent_id === "string" &&
+      Object.values(state.runs).some(r => r.members.some(m => m.childId === a.agent_id)))
+      return { ...state, controls: { ...state.controls, [d.callId]: a.agent_id } };
     if (
       d.name === "job_output" &&
       typeof a.job_id === "string" &&
@@ -77,6 +87,14 @@ export function fold(state, event) {
   if (event.type === "tool/result") {
     const callId = d.message?.source?.callId,
       call = state.calls[callId];
+    const interruptedChild = state.controls?.[callId];
+    if (interruptedChild) {
+      const controls = { ...state.controls };
+      delete controls[callId];
+      return { ...state, controls, runs: d.message.isError ? state.runs : Object.fromEntries(
+        Object.entries(state.runs).map(([id, r]) => [id, { ...r, members: r.members.map(m =>
+          m.childId === interruptedChild ? { ...m, diagnostic: { kind: "parent_cancelled", code: "ABORTED", message: "" } } : m) }])) };
+    }
     if (call) {
       const receipt = d.meta?.ultracode;
       if (
@@ -292,7 +310,10 @@ export function view(state) {
     const job = receipt
       ? state.jobs[receipt.jobId]
       : Object.values(state.jobs).find((j) => j.callId === call.id);
-    const status =
+    const members = (run?.members ?? []).map(m => m.status === "failed" &&
+      ["parent_cancelled", "cancelled"].includes(m.diagnostic?.kind) ? { ...m, status: "cancelled" } : m);
+    const issues = members.filter(m => ["failed", "cancelled", "interrupted"].includes(m.status));
+    const executionStatus =
       job?.detail === INTERRUPTED_DETAIL
         ? "interrupted"
         : (run?.status ??
@@ -303,6 +324,7 @@ export function view(state) {
               : call.status === "interrupted"
                 ? "interrupted"
                 : "failed"));
+    const status = executionStatus === "completed" && issues.length ? "attention" : executionStatus;
     group.revisions.push({
       id: call.id,
       number: receipt?.revision ?? group.revisions.length + 1,
@@ -312,11 +334,13 @@ export function view(state) {
       title: call.title,
       reason: receipt?.reason ?? call.reason,
       status,
+      executionStatus,
+      issueCount: issues.length,
       accepted: call.accepted,
       startedAt: run?.startedAt ?? call.startedAt,
       endedAt: run?.endedAt ?? job?.endedAt ?? null,
       phases: call.phases,
-      members: run?.members ?? [],
+      members,
       agentLimit: receipt?.agentLimit ?? null,
       reused: [...(receipt?.reused ?? []), ...(run?.members ?? []).filter(m=>m.reused).map(m=>({ childId:m.childId, reason:"Exact completed prefix replayed from saved result." }))],
       replacedRunId: receipt?.replacedRunId ?? null,
@@ -334,7 +358,7 @@ export function view(state) {
     );
     group.revisions = group.revisions.map((r) =>
       replaced.has(r.runId)
-        ? { ...r, status: "replaced", executionStatus: r.status }
+        ? { ...r, status: "replaced", executionStatus: r.executionStatus ?? r.status }
         : r,
     );
     group.current = (

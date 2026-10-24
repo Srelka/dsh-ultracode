@@ -5,7 +5,7 @@ export function apply(ctx) {
   const record = z.record(z.string(), z.unknown());
   ctx.sessionProjections.register({
     key: PROJECTION_KEY,
-    stateVersion: 4,
+    stateVersion: 5,
     stateSchema: z.object({
       enabled: z.boolean(),
       calls: record,
@@ -13,6 +13,7 @@ export function apply(ctx) {
       jobs: record,
       reads: z.record(z.string(), z.string()),
       checkpoints: record,
+      controls: z.record(z.string(), z.string()),
     }),
     init: emptyState,
     apply: fold,

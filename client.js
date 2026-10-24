@@ -9,6 +9,25 @@ window.__ModuleLoader__.load({
       running: "运行中",
       starting: "启动中",
       completed: "已完成",
+      attention: "已结束，有异常",
+      incomplete: "{count} 项代理未正常完成，请确认结果或安排重跑。",
+      cause_parent_cancelled: "被主代理中止",
+      cause_cancelled: "执行被中止",
+      cause_interrupted: "执行已中断",
+      cause_model_format: "模型返回格式异常",
+      cause_rate_limit: "模型服务请求受限",
+      cause_authentication: "模型服务认证失败",
+      cause_connection: "连接失败或请求超时",
+      cause_max_tokens: "已达到模型输出上限",
+      cause_refusal: "模型未接受该任务",
+      cause_error: "子代理执行出错",
+      cause_unknown: "未返回有效结果，详细原因未记录",
+      action_cancelled: "如仍需要该结果，让主代理重跑此项；已完成结果保留。",
+      action_retry: "查看子代理记录；原因处理后，让主代理重跑未完成项。",
+      action_authentication: "检查当前模型的登录或 API 配置，再重跑此项。",
+      action_connection: "检查连接和服务状态，再重跑此项。",
+      action_rate_limit: "等待服务限流解除后，再重跑此项。",
+      technical: "错误详情",
       failed: "失败",
       cancelled: "已取消",
       interrupted: "已中断",
@@ -52,6 +71,25 @@ window.__ModuleLoader__.load({
       running: "Running",
       starting: "Starting",
       completed: "Completed",
+      attention: "Finished with issues",
+      incomplete: "{count} agent runs did not complete. Review the results or arrange a retry.",
+      cause_parent_cancelled: "Stopped by the main agent",
+      cause_cancelled: "Execution was stopped",
+      cause_interrupted: "Execution was interrupted",
+      cause_model_format: "Invalid model response format",
+      cause_rate_limit: "Model service rate limit",
+      cause_authentication: "Model authentication failed",
+      cause_connection: "Connection failed or timed out",
+      cause_max_tokens: "Model output limit reached",
+      cause_refusal: "The model declined this task",
+      cause_error: "Agent execution failed",
+      cause_unknown: "No valid result; no detailed cause was recorded",
+      action_cancelled: "Ask the main agent to rerun this task if still needed. Completed results are retained.",
+      action_retry: "Inspect the agent record, address the cause, then ask the main agent to rerun unfinished work.",
+      action_authentication: "Check model sign-in or API settings, then retry this task.",
+      action_connection: "Check connectivity and service availability, then retry this task.",
+      action_rate_limit: "Retry this task after the service rate limit clears.",
+      technical: "Error details",
       failed: "Failed",
       cancelled: "Cancelled",
       interrupted: "Interrupted",
@@ -132,7 +170,7 @@ window.__ModuleLoader__.load({
             )
           : status === "completed"
             ? h(Icon, { name: "check" })
-            : status === "failed"
+            : status === "failed" || status === "attention"
               ? h(Icon, { name: "error" })
               : null,
       );
@@ -141,6 +179,15 @@ window.__ModuleLoader__.load({
       if (!a) return "—";
       const s = Math.max(0, Math.round(((b || Date.now()) - a) / 1000));
       return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+    }
+    function memberIssue(member) {
+      if (!["failed", "cancelled", "interrupted"].includes(member.status)) return null;
+      const kind = member.diagnostic?.kind || (member.status === "failed" ? "unknown" : member.status);
+      return {
+        cause: `cause_${kind}` in zh ? `cause_${kind}` : "cause_unknown",
+        action: ["parent_cancelled", "cancelled", "interrupted"].includes(kind) ? "action_cancelled"
+          : `action_${kind}` in zh ? `action_${kind}` : "action_retry",
+      };
     }
     function loadUI(id) {
       try {
@@ -357,6 +404,7 @@ window.__ModuleLoader__.load({
 .uc-slot .uc-panel{transition:transform 180ms cubic-bezier(.2,.8,.2,1),box-shadow 180ms ease,border-color 180ms ease;transform-origin:50% 24px}.uc-slot .uc-top{position:sticky;top:0;z-index:2;background:color-mix(in srgb,var(--uc-bg) 88%,transparent);backdrop-filter:blur(18px)}.uc-slot .uc-drag-handle{flex:1;min-width:0;align-self:stretch;border:0;background:none;padding:4px 0;cursor:grab;touch-action:none;user-select:none;text-align:left;transition:color 160ms ease}.uc-slot .uc-drag-handle:hover{color:var(--uc-blue)}.uc-slot .uc-dragging{transform:scale(1.008);border-color:color-mix(in srgb,var(--uc-blue) 24%,var(--uc-bg));box-shadow:0 28px 62px -18px color-mix(in srgb,var(--uc-ink) 28%,transparent),0 8px 20px -8px color-mix(in srgb,var(--uc-blue) 15%,transparent),inset 0 1px 2px var(--uc-bg);user-select:none}.uc-slot .uc-dragging .uc-drag-handle{cursor:grabbing;color:var(--uc-blue)}
 .uc-slot .uc-dot .uc-spinner{display:block;width:12px;height:12px;animation:uc-status-spin 900ms linear infinite;transform-origin:50% 50%}.uc-slot .uc-spinner-track{opacity:.18}
 @keyframes uc-status-spin{to{transform:rotate(360deg)}}
+.uc-slot .uc-dot.uc-attention{color:var(--dsw-alias-state-warning-primary,#a46d20);border-color:currentColor}.uc-slot .uc-notice{color:var(--uc-ink);background:color-mix(in srgb,#b6883d 9%,transparent);border-left:2px solid color-mix(in srgb,#b6883d 55%,transparent)}.uc-slot .uc-cause{display:block;margin-top:3px;font-size:10px;font-weight:400;line-height:1.5;color:var(--uc-muted)}.uc-slot .uc-next{margin:5px 0 7px;color:var(--uc-ink)}.uc-slot .uc-technical>summary{padding:3px 0;display:list-item;font-size:10px;cursor:pointer;color:var(--uc-muted)}.uc-slot .uc-technical pre{max-height:96px;font-size:10px}
 @media(prefers-reduced-motion:reduce){.uc-slot .uc-dot .uc-spinner{animation:none}.uc-slot .uc-spinner-track{opacity:.75}.uc-slot .uc-spinner-arc{display:none}}
 @media(max-width:600px){.uc-slot .uc-panel{width:min(350px,calc(100vw - 48px));border-radius:17px}.uc-slot .uc-body{padding:3px 15px 13px}.uc-slot .uc-member{min-height:44px}.uc-slot .uc-top{padding:12px 14px 8px}.uc-slot .uc-anchor small{display:none}}@media(prefers-reduced-transparency:reduce){.uc-slot .uc-panel,.uc-slot .uc-anchor{background:var(--uc-bg);backdrop-filter:none}}@media(prefers-reduced-motion:reduce){.uc-slot .uc-panel,.uc-slot .uc-drag-handle{transition:none}.uc-slot .uc-dragging{transform:none}}
 `;
@@ -709,6 +757,8 @@ window.__ModuleLoader__.load({
                       h("div", { className: "uc-banner" }, revision.reason),
                     revision.error &&
                       h("div", { className: "uc-errorbox" }, revision.error),
+                    revision.status === "attention" &&
+                      h("div", { className: "uc-banner uc-notice", role: "status" }, t("incomplete", { count: revision.issueCount })),
                     h(
                       "div",
                       { className: "uc-counts" },
@@ -726,7 +776,7 @@ window.__ModuleLoader__.load({
                         ui.phases?.[phaseKey] ??
                         (members.some(
                           (m) =>
-                            m.status === "running" || m.status === "failed",
+                            m.status === "running" || memberIssue(m),
                         ) ||
                           groups.size === 1);
                       const rows = members.map((m) =>
@@ -747,6 +797,7 @@ window.__ModuleLoader__.load({
                               "span",
                               { className: "uc-member-name" },
                               m.label || `#${m.seq}`,
+                              memberIssue(m) && h("small", { className: "uc-cause" }, t(memberIssue(m).cause)),
                             ),
                             h(
                               "span",
@@ -760,6 +811,10 @@ window.__ModuleLoader__.load({
                               { className: "uc-detail" },
                               h("div", null, duration(m.startedAt, m.endedAt)),
                               m.reused && h("div", null, t("replayed")),
+                              memberIssue(m) && h("div", { className: "uc-next" }, t(memberIssue(m).action)),
+                              memberIssue(m) && (m.diagnostic?.code || m.diagnostic?.message) &&
+                                h("details", { className: "uc-technical" }, h("summary", null, t("technical")),
+                                  h("pre", null, [m.diagnostic.code, m.diagnostic.message].filter(Boolean).join("\n"))),
                               h(
                                 "button",
                                 {

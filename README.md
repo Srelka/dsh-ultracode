@@ -10,7 +10,9 @@
 
 - 选择 Ultracode 即授权编排：模型判断复杂任务并主动创建工作流，简单任务直接完成，无需重复要求。
 - 1.3.0 保留 JavaScript 脚本编排，支持脚本文件、启动前校验、调整后复用已完成结果和会话恢复。
-- 复杂任务在实现前启动工作流；标准模式与已有会话的切换和恢复仍保持隔离。
+- 主代理统筹规划、调整和汇总，工作流负责实现、整合与测试；成功派发后主代理结束本轮，完成通知唤醒。
+- 后台运行时，用户另行交办的简单独立事项可由主代理直接完成，不取消原工作流；重叠写入先交接。
+- 成员异常显示原因和后续建议；脚本正常结束但有成员未完成时，标明“已结束，有异常”，不误报全部完成。
 - 启动时动态继承当前标准预设，仅覆盖工作流编排策略、并发和总代理预算。
 - 使用 DSH 原生工作流、子代理、后台任务和完成通知；后台任务结束后可唤醒主对话。
 - 工作流卡片固定悬浮、可拖动和折叠，支持阶段、成员、执行结果和版本历史。
@@ -23,10 +25,10 @@
 
 从本仓库的 Release 下载 `.tgz`，在 DSH 的插件安装入口选择该安装包。CLI 用户可用：
 
-[下载 v1.3.1](https://github.com/Srelka/dsh-ultracode/releases/tag/v1.3.1)
+[下载 v1.3.2](https://github.com/Srelka/dsh-ultracode/releases/tag/v1.3.2)
 
 ```powershell
-dsh plugin --profile web add ./srelka-dsh-ultracode-1.3.1.tgz
+dsh plugin --profile web add ./srelka-dsh-ultracode-1.3.2.tgz
 ```
 
 将 `web` 替换为实际使用的 profile。桌面端优先使用应用内插件管理入口。安装后完全退出并重新打开 DSH，在新会话的 Agent 预设中选择 **Ultracode**。
