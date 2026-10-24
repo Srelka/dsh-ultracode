@@ -14,10 +14,12 @@ export function dockHarness(projection, { source, language = "zh", ui = {}, open
       if (!(index in states)) states[index] = typeof initial === "function" ? initial() : initial;
       return [states[index], value => { states[index] = typeof value === "function" ? value(states[index]) : value; }];
     },
-    useRef: value => ({ current: value }), useEffect() {}, useLayoutEffect() {},
+    useRef: value => ({ current: value }), useMemo: fn => fn(), useEffect() {}, useLayoutEffect() {},
   };
   vm.runInNewContext(source, {
-    window: { __ModuleLoader__: { load: module => { plugin = module.factory(() => React); } } },
+    window: { __ModuleLoader__: { load: module => { plugin = module.factory(name => name === "react" ? React : {
+      MarkdownText: ({ text }) => React.createElement("article", { "data-markdown": true }, text),
+    }); } } },
     sessionStorage: { getItem: () => JSON.stringify(ui) },
     Date: class extends Date { static now() { return 120000; } },
   });
@@ -36,7 +38,7 @@ export function dockHarness(projection, { source, language = "zh", ui = {}, open
   }
   function render() {
     cursor = 0;
-    tree = resolve(slots.get("conversation.composer.dock")({
+    tree = resolve(slots.get("conversation.session.header.actions")({
       sessionId: "test-session", useProjection: () => projection, openChild, killJob, t,
     }));
     return tree;

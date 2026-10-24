@@ -3,14 +3,22 @@ window.__ModuleLoader__.load({
   factory(require) {
     const React = require("react"),
       h = React.createElement;
-    const { useState, useEffect, useLayoutEffect, useRef } = React;
+    const { useState, useEffect, useLayoutEffect, useRef, useMemo } = React;
+    const { MarkdownText } = require("@deepseek-ai/dsh-client-ui-primitives");
     const zh = {
       workflows: "工作流",
       running: "运行中",
       starting: "启动中",
       completed: "已完成",
       attention: "已结束，有异常",
-      incomplete: "{count} 项代理未正常完成，请确认结果或安排重跑。",
+      viewResult: "查看完整结果",
+      rawResult: "原始数据",
+      close: "关闭",
+      copy: "复制",
+      copied: "已复制",
+      footnotes: "脚注",
+      wrap: "换行",
+      unwrap: "不换行",
       cause_parent_cancelled: "被主代理中止",
       cause_cancelled: "执行被中止",
       cause_interrupted: "执行已中断",
@@ -68,7 +76,14 @@ window.__ModuleLoader__.load({
       starting: "Starting",
       completed: "Completed",
       attention: "Finished with issues",
-      incomplete: "{count} agent runs did not complete. Review the results or arrange a retry.",
+      viewResult: "Read full result",
+      rawResult: "Raw data",
+      close: "Close",
+      copy: "Copy",
+      copied: "Copied",
+      footnotes: "Footnotes",
+      wrap: "Wrap",
+      unwrap: "Unwrap",
       cause_parent_cancelled: "Stopped by the main agent",
       cause_cancelled: "Execution was stopped",
       cause_interrupted: "Execution was interrupted",
@@ -123,6 +138,8 @@ window.__ModuleLoader__.load({
       move: "Drag workflow; arrow keys move, Home or double-click resets position",
     };
     const paths = {
+      close: "m5 5 10 10M15 5 5 15",
+      document: "M6 2h6l4 4v12H4V2h2M11 2v5h5M7 11h6M7 14h6",
       branch: "M6 3v12a3 3 0 0 0 3 3h3M6 8h8a4 4 0 0 0 4-4V3",
       chevron: "m8 4 6 6-6 6",
       minus: "M4 10h12",
@@ -202,9 +219,11 @@ window.__ModuleLoader__.load({
         top: 82,
         maxHeight: "calc(100dvh - 98px)",
       });
+      const composer = () => rootRef.current?.closest('[data-phase]')?.querySelector('[data-composer-seat]');
+      const lowerEdge = () => Math.max(242, Math.min(innerHeight - 16, (composer()?.getBoundingClientRect().top ?? innerHeight) - 12));
       const bounds = () => {
         const panel = panelRef.current,
-          seat = rootRef.current?.closest("[data-composer-seat]");
+          seat = composer();
         const rect = panel?.getBoundingClientRect(),
           area = seat?.getBoundingClientRect();
         const width = panel?.offsetWidth ?? 340,
@@ -217,7 +236,7 @@ window.__ModuleLoader__.load({
           left: Math.max(16, Math.min((area?.left ?? 0) + 16, right)),
           right,
           top: 82,
-          bottom: Math.max(82, innerHeight - height - 16),
+          bottom: Math.max(82, lowerEdge() - height),
           rect,
         };
       };
@@ -230,7 +249,7 @@ window.__ModuleLoader__.load({
           const next = {
             left: p.x,
             top: p.y,
-            maxHeight: Math.max(80, innerHeight - p.y - 16),
+            maxHeight: Math.max(160, lowerEdge() - p.y),
           };
           return old.left === next.left &&
             old.top === next.top &&
@@ -272,7 +291,7 @@ window.__ModuleLoader__.load({
       useLayoutEffect(() => {
         if (!enabled || collapsed) return;
         const panel = panelRef.current,
-          seat = rootRef.current?.closest("[data-composer-seat]");
+          seat = composer();
         if (!panel) return;
         const observer = new ResizeObserver(restore);
         observer.observe(panel);
@@ -378,25 +397,32 @@ window.__ModuleLoader__.load({
       };
     }
     const CSS = `
-.uc-slot{--uc-bg:var(--dsw-alias-bg-base);--uc-ink:var(--dsw-alias-label-primary);--uc-muted:var(--dsw-alias-label-tertiary);--uc-line:var(--dsw-alias-border-l1);--uc-blue:var(--dsw-alias-state-business-primary);--uc-error:var(--dsw-alias-state-error-primary);position:relative;box-sizing:border-box;width:calc(100% - 32px);max-width:var(--dsh-composer-card-max-width,952px);margin:0 auto;padding:0 0 5px;color:var(--uc-ink);font-family:var(--dsw-font-family);font-size:12px;line-height:1.6;isolation:isolate}
+.uc-slot{--uc-bg:var(--dsw-alias-bg-base);--uc-ink:var(--dsw-alias-label-primary);--uc-muted:var(--dsw-alias-label-tertiary);--uc-line:var(--dsw-alias-border-l1);--uc-blue:var(--dsw-alias-state-business-primary);--uc-error:var(--dsw-alias-state-error-primary);position:relative;box-sizing:border-box;display:contents;color:var(--uc-ink);font-family:var(--dsw-font-family);font-size:12px;line-height:1.6;isolation:isolate}
 .uc-slot *{box-sizing:border-box}.uc-slot button{font:inherit;color:inherit;cursor:pointer}.uc-slot button:focus-visible,.uc-slot summary:focus-visible{outline:2px solid var(--uc-blue);outline-offset:3px}.uc-slot svg{flex:none;vertical-align:middle}.uc-slot .uc-iconbutton{display:inline-grid;place-items:center;border:0;background:transparent;padding:4px;border-radius:6px;color:var(--uc-muted)}.uc-slot .uc-iconbutton:hover{background:color-mix(in srgb,var(--uc-bg) 70%,transparent)}
-.uc-slot .uc-panel{position:fixed;top:82px;width:min(340px,calc(100vw - 56px));max-height:calc(100dvh - 98px);overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;border-radius:22px;border:1px solid color-mix(in srgb,var(--uc-line) 52%,transparent);background:linear-gradient(145deg,color-mix(in srgb,var(--uc-bg) 82%,transparent),color-mix(in srgb,var(--uc-bg) 62%,transparent));backdrop-filter:blur(20px) saturate(145%);-webkit-backdrop-filter:blur(20px) saturate(145%);box-shadow:0 18px 45px -18px color-mix(in srgb,var(--uc-ink) 25%,transparent),0 5px 12px -7px color-mix(in srgb,var(--uc-ink) 20%,transparent),inset 0 2px 1px color-mix(in srgb,var(--uc-bg) 92%,transparent),inset 2px 0 2px color-mix(in srgb,var(--uc-bg) 88%,transparent),inset 0 -1px 2px color-mix(in srgb,var(--uc-blue) 13%,transparent)}
-.uc-slot .uc-top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:15px 17px 9px}.uc-slot .uc-brand{display:flex;align-items:center;gap:7px;color:var(--uc-muted);font-size:11px}.uc-slot .uc-tools{display:flex;align-items:center;gap:4px}.uc-slot .uc-picker{display:flex;align-items:center;gap:5px;background:none;border:0;font-size:11px;color:var(--uc-muted);padding:3px}.uc-slot .uc-picker svg{width:11px;height:11px;transform:rotate(90deg)}
-.uc-slot .uc-body{padding:3px 20px 15px}.uc-slot .uc-title{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.uc-slot h3{font-size:16px;font-weight:550;line-height:1.5;letter-spacing:-.3px;margin:0;overflow-wrap:anywhere}.uc-slot .uc-status{display:flex;align-items:center;gap:5px;font-size:10px;white-space:nowrap;color:var(--uc-muted)}.uc-slot .uc-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 15px;color:var(--uc-muted);font-size:10px;font-variant-numeric:tabular-nums}.uc-slot .uc-link{background:none;border:0;color:var(--uc-blue);padding:0;font-size:11px;text-align:left}.uc-slot .uc-link:hover{text-decoration:underline;text-underline-offset:3px}
+.uc-slot .uc-panel{position:fixed;top:82px;width:min(340px,calc(100vw - 56px));max-height:calc(100dvh - 98px);display:flex;flex-direction:column;overflow:hidden;overscroll-behavior:contain;scrollbar-width:thin;border-radius:18px;z-index:40;border:1px solid color-mix(in srgb,var(--uc-line) 52%,transparent);background:linear-gradient(145deg,color-mix(in srgb,var(--uc-bg) 97%,transparent),color-mix(in srgb,var(--uc-bg) 94%,transparent));backdrop-filter:blur(20px) saturate(145%);-webkit-backdrop-filter:blur(20px) saturate(145%);box-shadow:0 18px 45px -18px color-mix(in srgb,var(--uc-ink) 25%,transparent),0 5px 12px -7px color-mix(in srgb,var(--uc-ink) 20%,transparent),inset 0 2px 1px color-mix(in srgb,var(--uc-bg) 92%,transparent),inset 2px 0 2px color-mix(in srgb,var(--uc-bg) 88%,transparent),inset 0 -1px 2px color-mix(in srgb,var(--uc-blue) 13%,transparent)}
+.uc-slot .uc-top{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:15px 17px 9px}.uc-slot .uc-brand{display:flex;align-items:center;gap:7px;color:var(--uc-muted);font-size:11px}.uc-slot .uc-tools{display:flex;align-items:center;gap:4px}.uc-slot .uc-picker{display:flex;align-items:center;gap:5px;background:none;border:0;font-size:11px;color:var(--uc-muted);padding:3px}.uc-slot .uc-picker svg{width:11px;height:11px;transform:rotate(90deg)}
+.uc-slot .uc-body{padding:4px 20px 16px;overflow:auto;min-height:0;overscroll-behavior:contain;scrollbar-width:thin}.uc-slot .uc-title{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.uc-slot .uc-title h3{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:14px;font-weight:550;line-height:1.65;letter-spacing:0;margin:0;overflow-wrap:anywhere}.uc-slot .uc-status{display:flex;align-items:center;gap:5px;font-size:10px;white-space:nowrap;color:var(--uc-muted)}.uc-slot .uc-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 15px;color:var(--uc-muted);font-size:10px;font-variant-numeric:tabular-nums}.uc-slot .uc-link{background:none;border:0;color:var(--uc-blue);padding:0;font-size:11px;text-align:left}.uc-slot .uc-link:hover{text-decoration:underline;text-underline-offset:3px}
 .uc-slot .uc-dot{width:12px;height:12px;display:inline-grid;place-items:center;color:var(--uc-muted);border:1px solid color-mix(in srgb,var(--uc-muted) 60%,transparent);border-radius:50%;flex:none}.uc-slot .uc-dot svg{width:10px;height:10px}.uc-slot .uc-dot.uc-running,.uc-slot .uc-dot.uc-starting{color:var(--uc-blue);border:0}.uc-slot .uc-dot.uc-failed{color:var(--uc-error);border-color:var(--uc-error)}.uc-slot .uc-dot.uc-replaced{border-style:dashed}
 .uc-slot .uc-banner{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;margin-bottom:12px;border-radius:8px;background:color-mix(in srgb,var(--uc-blue) 6%,transparent);font-size:11px;color:var(--uc-muted);overflow-wrap:anywhere}.uc-slot .uc-errorbox{max-height:96px;overflow:auto;font-size:11px;color:var(--uc-error);background:color-mix(in srgb,var(--uc-error) 6%,transparent);padding:9px 10px;border-radius:7px;margin-bottom:12px;white-space:pre-wrap;overflow-wrap:anywhere}
-.uc-slot .uc-counts{font-size:10px;color:var(--uc-muted);padding:0 0 10px}.uc-slot .uc-phase{border-top:1px solid color-mix(in srgb,var(--uc-line) 65%,transparent)}.uc-slot .uc-phase summary{cursor:pointer;display:flex;align-items:center;gap:7px;padding:10px 0;list-style:none;font-size:11px}.uc-slot .uc-phase summary::-webkit-details-marker{display:none}.uc-slot .uc-phase summary>svg{width:11px;height:11px;color:var(--uc-muted)}.uc-slot .uc-phase[open] summary>svg{transform:rotate(90deg)}.uc-slot .uc-phase summary>span:first-of-type{flex:1;overflow-wrap:anywhere}.uc-slot .uc-phase-count{font-size:10px;color:var(--uc-muted)}
+.uc-slot .uc-phase{border-top:1px solid color-mix(in srgb,var(--uc-line) 65%,transparent)}.uc-slot .uc-phase summary{cursor:pointer;display:flex;align-items:center;gap:7px;padding:10px 0;list-style:none;font-size:11px}.uc-slot .uc-phase summary::-webkit-details-marker{display:none}.uc-slot .uc-phase summary>svg{width:11px;height:11px;color:var(--uc-muted)}.uc-slot .uc-phase[open] summary>svg{transform:rotate(90deg)}.uc-slot .uc-phase summary>span:first-of-type{flex:1;overflow-wrap:anywhere}.uc-slot .uc-phase-count{font-size:10px;color:var(--uc-muted)}
 .uc-slot .uc-member{width:100%;display:flex;align-items:center;gap:9px;border:0;border-radius:6px;background:none;padding:10px 2px;text-align:left}.uc-slot .uc-member:hover,.uc-slot .uc-member[aria-expanded=true]{background:color-mix(in srgb,var(--uc-bg) 65%,transparent)}.uc-slot .uc-member-name{flex:1;min-width:0;font-size:12px;overflow-wrap:anywhere}.uc-slot .uc-member-status{font-size:10px;color:var(--uc-muted)}.uc-slot .uc-detail{padding:4px 4px 12px 23px;font-size:11px;line-height:1.8;overflow-wrap:anywhere;color:var(--uc-muted)}.uc-slot .uc-empty{padding:7px 0 14px;font-size:11px;color:var(--uc-muted)}
-.uc-slot .uc-footer{padding:11px 18px 13px;border-top:1px solid color-mix(in srgb,var(--uc-line) 70%,transparent);display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;color:var(--uc-muted)}.uc-slot .uc-footer>span{display:flex;gap:5px;align-items:center}.uc-slot .uc-history{border:0;background:none;color:var(--uc-muted);font-size:10px;padding:0;display:flex;align-items:center;gap:4px}.uc-slot .uc-history svg{width:12px;height:12px}
-.uc-slot .uc-anchor{margin-left:auto;display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid color-mix(in srgb,var(--uc-line) 65%,transparent);border-radius:10px;background:color-mix(in srgb,var(--uc-bg) 88%,transparent);backdrop-filter:blur(12px);max-width:100%;box-shadow:0 3px 12px -8px var(--uc-muted);font-size:11px;text-align:left}.uc-slot .uc-anchor>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.uc-slot .uc-anchor small{color:var(--uc-muted);font-size:10px;white-space:nowrap}
+.uc-slot .uc-footer{flex-shrink:0;padding:11px 18px 13px;border-top:1px solid color-mix(in srgb,var(--uc-line) 70%,transparent);display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;color:var(--uc-muted)}.uc-slot .uc-footer>span{display:flex;gap:5px;align-items:center}.uc-slot .uc-history{border:0;background:none;color:var(--uc-muted);font-size:10px;padding:0;display:flex;align-items:center;gap:4px}.uc-slot .uc-history svg{width:12px;height:12px}
+.uc-slot .uc-anchor{display:inline-flex;align-items:center;gap:7px;padding:4px 8px;border:1px solid color-mix(in srgb,var(--uc-line) 65%,transparent);border-radius:10px;background:color-mix(in srgb,var(--uc-bg) 88%,transparent);backdrop-filter:blur(12px);max-width:216px;min-width:0;box-shadow:none;font-size:11px;text-align:left}.uc-slot .uc-anchor>span:not(.uc-dot){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.uc-slot .uc-anchor small{color:var(--uc-muted);font-size:10px;white-space:nowrap}
 .uc-slot .uc-menu{position:absolute;z-index:4;top:53px;left:12px;right:12px;max-height:min(272px,calc(100% - 66px));overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;border:1px solid var(--uc-line);border-radius:12px;background:var(--uc-bg);padding:5px;box-shadow:0 12px 28px -8px color-mix(in srgb,var(--uc-ink) 20%,transparent),0 2px 6px color-mix(in srgb,var(--uc-ink) 5%,transparent)}.uc-slot .uc-option{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;border-radius:7px;padding:8px 10px}.uc-slot .uc-option[aria-pressed=true],.uc-slot .uc-option:hover{background:color-mix(in srgb,var(--uc-blue) 6%,transparent)}.uc-slot .uc-option-label{flex:1;min-width:0}.uc-slot .uc-option>.uc-dot{flex:0 0 12px;width:12px;height:12px}.uc-slot .uc-option strong{font-weight:500;font-size:12px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.uc-slot .uc-option small{font-size:10px;color:var(--uc-muted);display:block}
-.uc-slot .uc-revision{border-left:1px solid var(--uc-line);margin:12px 0 0 4px;padding:0 0 17px 13px}.uc-slot .uc-revision-heading{display:flex;align-items:center;gap:7px;font-size:12px}.uc-slot .uc-revision p{font-size:11px;color:var(--uc-muted);line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere;margin:7px 0}.uc-slot .uc-revision small{font-size:10px;color:var(--uc-muted)}.uc-slot .uc-result summary{font-size:11px;cursor:pointer;color:var(--uc-muted);padding-top:12px}.uc-slot pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:210px;overflow:auto;font-size:11px;background:color-mix(in srgb,var(--uc-bg) 75%,transparent);border-radius:7px;padding:10px;margin:8px 0 0;color:var(--uc-ink)}
+.uc-slot .uc-revision{border-left:1px solid var(--uc-line);margin:12px 0 0 4px;padding:0 0 17px 13px}.uc-slot .uc-revision-heading{display:flex;align-items:center;gap:7px;font-size:12px}.uc-slot .uc-revision p{font-size:11px;color:var(--uc-muted);line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere;margin:7px 0}.uc-slot .uc-revision small{font-size:10px;color:var(--uc-muted)}.uc-slot pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:210px;overflow:auto;font-size:11px;background:color-mix(in srgb,var(--uc-bg) 75%,transparent);border-radius:7px;padding:10px;margin:8px 0 0;color:var(--uc-ink)}
 .uc-slot .uc-panel{transition:transform 180ms cubic-bezier(.2,.8,.2,1),box-shadow 180ms ease,border-color 180ms ease;transform-origin:50% 24px}.uc-slot .uc-top{position:sticky;top:0;z-index:2;background:color-mix(in srgb,var(--uc-bg) 88%,transparent);backdrop-filter:blur(18px)}.uc-slot .uc-drag-handle{flex:1;min-width:0;align-self:stretch;border:0;background:none;padding:4px 0;cursor:grab;touch-action:none;user-select:none;text-align:left;transition:color 160ms ease}.uc-slot .uc-drag-handle:hover{color:var(--uc-blue)}.uc-slot .uc-dragging{transform:scale(1.008);border-color:color-mix(in srgb,var(--uc-blue) 24%,var(--uc-bg));box-shadow:0 28px 62px -18px color-mix(in srgb,var(--uc-ink) 28%,transparent),0 8px 20px -8px color-mix(in srgb,var(--uc-blue) 15%,transparent),inset 0 1px 2px var(--uc-bg);user-select:none}.uc-slot .uc-dragging .uc-drag-handle{cursor:grabbing;color:var(--uc-blue)}
 .uc-slot .uc-dot .uc-spinner{display:block;width:12px;height:12px;animation:uc-status-spin 900ms linear infinite;transform-origin:50% 50%}.uc-slot .uc-spinner-track{opacity:.18}
 @keyframes uc-status-spin{to{transform:rotate(360deg)}}
-.uc-slot .uc-dot.uc-attention{color:var(--dsw-alias-state-warning-primary,#a46d20);border-color:currentColor}.uc-slot .uc-notice{color:var(--uc-ink);background:color-mix(in srgb,#b6883d 9%,transparent);border-left:2px solid color-mix(in srgb,#b6883d 55%,transparent)}.uc-slot .uc-cause{display:block;margin-top:3px;font-size:10px;font-weight:400;line-height:1.5;color:var(--uc-muted)}.uc-slot .uc-next{margin:5px 0 7px;color:var(--uc-ink)}.uc-slot .uc-technical>summary{padding:3px 0;display:list-item;font-size:10px;cursor:pointer;color:var(--uc-muted)}.uc-slot .uc-technical pre{max-height:96px;font-size:10px}
+.uc-slot .uc-dot.uc-attention{color:var(--dsw-alias-state-warning-primary,#a46d20);border-color:currentColor}.uc-slot .uc-cause{display:block;margin-top:3px;font-size:10px;font-weight:400;line-height:1.5;color:var(--uc-muted)}.uc-slot .uc-next{margin:5px 0 7px;color:var(--uc-ink)}.uc-slot .uc-technical>summary{padding:3px 0;display:list-item;font-size:10px;cursor:pointer;color:var(--uc-muted)}.uc-slot .uc-technical pre{max-height:96px;font-size:10px}
 @media(prefers-reduced-motion:reduce){.uc-slot .uc-dot .uc-spinner{animation:none}.uc-slot .uc-spinner-track{opacity:.75}.uc-slot .uc-spinner-arc{display:none}}
 @media(max-width:600px){.uc-slot .uc-panel{width:min(350px,calc(100vw - 48px));border-radius:17px}.uc-slot .uc-body{padding:3px 15px 13px}.uc-slot .uc-member{min-height:44px}.uc-slot .uc-top{padding:12px 14px 8px}.uc-slot .uc-anchor small{display:none}}@media(prefers-reduced-transparency:reduce){.uc-slot .uc-panel,.uc-slot .uc-anchor{background:var(--uc-bg);backdrop-filter:none}}@media(prefers-reduced-motion:reduce){.uc-slot .uc-panel,.uc-slot .uc-drag-handle{transition:none}.uc-slot .uc-dragging{transform:none}}
+.uc-slot .uc-panel,.uc-slot .uc-anchor,.uc-slot .uc-reader{-webkit-app-region:no-drag}.uc-report-list{padding-left:22px;margin:8px 0}.uc-report-list>li{padding-left:4px}.uc-slot .uc-summary{display:flex;align-items:center;justify-content:space-between;margin:0 0 9px;gap:12px}.uc-slot .uc-progress-count{font-size:11px;color:var(--uc-muted);font-variant-numeric:tabular-nums}.uc-slot .uc-meta{margin:8px 0 12px}.uc-slot .uc-progress{height:2px;border-radius:2px;background:color-mix(in srgb,var(--uc-muted) 10%,transparent);margin-bottom:13px;overflow:hidden}.uc-slot .uc-progress>span{height:100%;display:block;background:color-mix(in srgb,var(--uc-blue) 55%,var(--uc-muted));border-radius:inherit;transition:width 240ms ease}.uc-slot .uc-phase:first-of-type{border-top:0}
+.uc-slot .uc-result{display:block;width:100%;border:1px solid color-mix(in srgb,var(--uc-line) 65%,transparent);border-radius:11px;background:color-mix(in srgb,var(--uc-bg) 94%,var(--uc-blue));padding:11px 12px;margin-top:12px;text-align:left;transition:border-color 160ms ease,background 160ms ease}.uc-slot .uc-result:hover{border-color:color-mix(in srgb,var(--uc-blue) 30%,var(--uc-line));background:color-mix(in srgb,var(--uc-bg) 90%,var(--uc-blue))}.uc-slot .uc-result-heading{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--uc-muted)}.uc-slot .uc-result-heading svg:last-child{margin-left:auto;width:13px;height:13px}.uc-slot .uc-result-preview{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:6px;font-size:12px;line-height:1.7;color:var(--uc-ink)}
+.uc-slot .uc-reader{padding:0;border:1px solid var(--uc-line);border-radius:18px;background:var(--uc-bg);color:var(--uc-ink);width:min(820px,calc(100vw - 48px));max-width:none;max-height:calc(100dvh - 64px);box-shadow:0 28px 90px #0003;margin:auto;overflow:hidden;white-space:normal}.uc-reader::backdrop{background:#15152230;backdrop-filter:blur(4px)}.uc-reader-shell{display:flex;flex-direction:column;max-height:calc(100dvh - 66px)}.uc-reader-header{display:flex;align-items:center;gap:12px;padding:20px 24px;border-bottom:1px solid var(--uc-line);flex-shrink:0}.uc-reader-header>svg{color:var(--uc-muted);flex-shrink:0}.uc-reader-header h2{font-size:14px;font-weight:550;line-height:1.65;margin:0;flex:1;overflow-wrap:anywhere}.uc-reader-body{padding:24px 32px 32px;overflow:auto;overscroll-behavior:contain;font-size:14px;line-height:1.8;min-height:0}.uc-report-section+ .uc-report-section{margin-top:28px;padding-top:20px;border-top:1px solid var(--uc-line)}.uc-report-section>h3{font-size:12px;font-weight:500;color:var(--uc-muted);margin:0 0 12px;overflow-wrap:anywhere}.uc-slot .uc-reader pre{max-height:none;font-size:12px}.uc-slot .uc-reader .uc-raw{border-top:1px solid var(--uc-line);margin-top:32px;padding-top:16px;color:var(--uc-muted);font-size:11px}.uc-raw summary{cursor:pointer}.uc-reader-body table{max-width:100%}.uc-reader-body img{max-width:100%}.uc-slot .uc-reader .uc-raw pre{max-height:320px}.uc-slot .uc-reader .uc-iconbutton{width:28px;height:28px}.uc-slot .uc-anchor:hover{border-color:color-mix(in srgb,var(--uc-blue) 30%,var(--uc-line));background:var(--uc-bg)}
+@media(max-width:900px){.uc-slot .uc-anchor{max-width:76px}.uc-slot .uc-anchor>span:not(.uc-dot){display:none}.uc-slot .uc-anchor small{display:block}}
+@media(max-width:600px){.uc-slot .uc-reader{width:calc(100vw - 20px);max-height:calc(100dvh - 24px);border-radius:14px}.uc-reader-shell{max-height:calc(100dvh - 26px)}.uc-reader-header{padding:16px}.uc-reader-body{padding:18px}}
+@media(prefers-reduced-motion:reduce){.uc-slot .uc-progress>span{transition:none}}
+
 `;
     const statusText = (t, status) => t(status in zh ? status : "unknown");
     function WorkflowMenu({ workflows, selectedId, choose, t }) {
@@ -476,6 +502,57 @@ window.__ModuleLoader__.load({
       }), !groups.size && h("div", { className: "uc-empty" }, t("empty")));
     }
 
+    function parseOutput(output) {
+      // job_output appends a native status line to the serialized script result.
+      // Strip it only for a successful JSON parse; raw output is always retained.
+      const body = output.replace(/\n\[status: [^\n]*\]\s*$/, "")
+        .replace(/\n\nUltracode: the script returned, but these members did not complete: [\s\S]*\. Inspect ultracode_workflows for their causes\. Do not report full success without verifying how these tasks were resolved\.$/, "");
+      try { return JSON.parse(body); } catch { return output; }
+    }
+    function resultPreview(value) {
+      if (typeof value === "string") return value.replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+        .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").replace(/[#*_`>]/g, "").replace(/\s+/g, " ").trim().slice(0, 180);
+      if (value && typeof value === "object") {
+        for (const item of Object.values(value)) { const preview = resultPreview(item); if (preview) return preview; }
+        return JSON.stringify(value);
+      }
+      return String(value ?? "");
+    }
+    function ResultContent({ value, labels, depth = 0 }) {
+      if (typeof value === "string") return h(MarkdownText, { text: value, streaming: false, labels });
+      if (Array.isArray(value) && value.length && depth < 8) return h("ol", { className: "uc-report-list" },
+        value.map((item, index) => h("li", { key: index }, h(ResultContent, { value: item, labels, depth: depth + 1 }))));
+      if (value && typeof value === "object" && Object.keys(value).length === 0) return h("pre", null, JSON.stringify(value));
+      if (value && typeof value === "object" && depth < 8) return Object.entries(value).map(([key, item]) =>
+        h("section", { className: "uc-report-section", key },
+          h("h3", null, key),
+          h(ResultContent, { value: item, labels, depth: depth + 1 })));
+      return h("pre", null, JSON.stringify(value, null, 2));
+    }
+    function ResultReader({ title, output, value, close, t }) {
+      const ref = useRef(null), backdropPress = useRef(false);
+      useEffect(() => {
+        const dialog = ref.current, previousFocus = document.activeElement;
+        dialog?.showModal();
+        return () => {
+          dialog?.close();
+          if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+        };
+      }, []);
+      const labels = { code: { copyLabel: t("copy"), copiedLabel: t("copied"),
+        toolbarLabels: { codeLabel: "Code", wrapLabel: t("wrap"), unwrapLabel: t("unwrap") } }, footnotes: t("footnotes") };
+      return h("dialog", { ref, className: "uc-reader", "aria-label": title,
+        onCancel: e => { e.preventDefault(); close(); },
+        onPointerDown: e => { backdropPress.current = e.target === e.currentTarget; },
+        onClick: e => { if (backdropPress.current && e.target === e.currentTarget) close(); backdropPress.current = false; },
+        onKeyDown: e => e.stopPropagation() },
+        h("div", { className: "uc-reader-shell" },
+          h("header", { className: "uc-reader-header" }, h(Icon, { name: "document" }),
+            h("h2", null, title), h("button", { type: "button", className: "uc-iconbutton", title: t("close"), "aria-label": t("close"), onClick: close }, h(Icon, { name: "close" }))),
+          h("div", { className: "uc-reader-body" },
+            h(ResultContent, { value, labels }),
+            h("details", { className: "uc-raw" }, h("summary", null, t("rawResult")), h("pre", null, output)))));
+    }
     function WorkflowDock({ sessionId, useProjection, killJob, openChild, t }) {
       const projection = useProjection("ultracode");
       const [ui, setUI] = useState(() => loadUI(sessionId)),
@@ -485,6 +562,7 @@ window.__ModuleLoader__.load({
         [error, setError] = useState(""),
         [confirm, setConfirm] = useState(false),
         [busy, setBusy] = useState(false),
+        [reader, setReader] = useState(false),
         [, tick] = useState(0);
       const pickerRef = useRef(null),
         rootRef = useRef(null);
@@ -526,6 +604,8 @@ window.__ModuleLoader__.load({
         document.addEventListener("pointerdown", outside);
         return () => document.removeEventListener("pointerdown", outside);
       }, [menu]);
+      const resultValue = useMemo(() => parseOutput(revision?.output || ""), [revision?.output]);
+      useEffect(() => setReader(false), [revision?.id]);
       if (!selected || !revision) return null;
       const collapsed = ui.collapsed === true,
         live = ["running", "starting"].includes(revision.status);
@@ -533,6 +613,7 @@ window.__ModuleLoader__.load({
       const choose = (id) => {
         patch({ workflowId: id, revisionId: null });
         setMenu(false);
+        setReader(false);
         setHistory(false);
         setMember(null);
         setConfirm(false);
@@ -540,6 +621,7 @@ window.__ModuleLoader__.load({
       };
       const selectRevision = (revisionId) => {
         patch({ revisionId });
+        setReader(false);
         setHistory(false);
         setMember(null);
       };
@@ -552,6 +634,8 @@ window.__ModuleLoader__.load({
         else { result.started++; if (m.status === "completed") result.completed++; }
         return result;
       }, { started: 0, completed: 0, reused: 0 });
+      const total = revision.members.length, done = counts.completed + counts.reused;
+      const progressLabel = total ? done + " / " + total : "—";
       const otherActive = active.filter((w) => w.id !== selected.id);
       const stopped = async () => {
         if (!confirm) {
@@ -572,30 +656,15 @@ window.__ModuleLoader__.load({
       };
       const status = h(
         "span",
-        { className: "uc-status" },
+        { className: "uc-status", title: live ? t("background") : undefined },
         h(Dot, { status: revision.status }),
         statusText(t, revision.status),
       );
-      const footer = h(
-        "div",
-        { className: "uc-footer" },
-        h(
-          "span",
-          null,
-          h(Dot, { status: revision.status }),
-          live ? t("background") : statusText(t, revision.status),
-        ),
-        h(
-          "button",
-          {
-            type: "button",
-            className: "uc-history",
-            onClick: () => setHistory((v) => !v),
-          },
-          h(Icon, { name: "history" }),
-          history ? t("back") : t("history"),
-        ),
-      );
+      const footer = h("div", { className: "uc-footer" },
+        live && revision.jobId ? h("button", { type: "button", className: "uc-link", disabled: busy, onClick: stopped },
+          busy ? t("busy") : confirm ? t("confirm") : t("cancel")) : h("span"),
+        h("button", { type: "button", className: "uc-history", onClick: () => setHistory(v => !v), title: t("history") },
+          h(Icon, { name: "history" }), history ? t("back") : t("history")));
       return h(
         "div",
         {
@@ -614,6 +683,7 @@ window.__ModuleLoader__.load({
           },
         },
         h("style", null, CSS),
+        reader && h(ResultReader, { title: revision.title || selected.title, output: revision.output, value: resultValue, close: () => setReader(false), t }),
         !collapsed &&
           h(
             "section",
@@ -671,36 +741,26 @@ window.__ModuleLoader__.load({
             h(
               "div",
               { className: "uc-body" },
+              h("div", { className: "uc-summary" }, status, h("span", { className: "uc-progress-count", title: t("completed") }, progressLabel)),
               h(
                 "div",
                 { className: "uc-title" },
-                h("h3", null, revision.title || selected.title),
-                status,
+                h("h3", { title: revision.title || selected.title }, revision.title || selected.title),
               ),
               h(
                 "div",
-                { className: "uc-meta" },
+                  { className: "uc-meta", title: revision.agentLimit ? t("limit", { count: revision.agentLimit }) : undefined },
                 h(
                   "span",
                   null,
                   t("version", { version: revision.number }),
                   " · ",
                   duration(revision.startedAt, revision.endedAt),
-                  revision.agentLimit
-                    ? " · " + t("limit", { count: revision.agentLimit })
-                    : "",
-                ),
-                h(
-                  "button",
-                  {
-                    type: "button",
-                    className: "uc-history",
-                    onClick: () => setHistory((v) => !v),
-                    "aria-label": t("history"),
-                  },
-                  h(Icon, { name: "history" }),
-                ),
+                  ),
+                h("span", { title: t("reusedCaution") }, counts.reused > 0 ? t("reused", { count: counts.reused }) : ""),
               ),
+              h("div", { className: "uc-progress", role: "progressbar", "aria-label": t("completed"), "aria-valuemin": 0, "aria-valuemax": total || 1, "aria-valuenow": done },
+                h("span", { style: { width: (total ? done / total * 100 : 0) + "%" } })),
               revision.id !== selected.current &&
                 h(
                   "div",
@@ -738,66 +798,33 @@ window.__ModuleLoader__.load({
                       h("div", { className: "uc-banner" }, revision.reason),
                     revision.error &&
                       h("div", { className: "uc-errorbox" }, revision.error),
-                    revision.status === "attention" &&
-                      h("div", { className: "uc-banner uc-notice", role: "status" }, t("incomplete", { count: revision.issueCount })),
-                    h(
-                      "div",
-                      { className: "uc-counts" },
-                      t("agents", { count: counts.started }),
-                      " · ",
-                      t("completed"),
-                      " ",
-                      counts.completed,
-                      counts.reused > 0 && ` · ${t("reused", {count:counts.reused})}`,
-                    ),
                     h(WorkflowPhases, { revision, ui, patch, member, setMember, openMember, t }),
-                    h(
-                      "details",
-                      { className: "uc-result" },
-                      h("summary", null, t("result")),
-                      h("pre", null, revision.output || t("noResult")),
-                    ),
-                    live &&
-                      revision.jobId &&
-                      h(
-                        "div",
-                        { style: { paddingTop: 12 } },
-                        h(
-                          "button",
-                          {
-                            type: "button",
-                            className: "uc-link",
-                            disabled: busy,
-                            onClick: stopped,
-                          },
-                          busy
-                            ? t("busy")
-                            : confirm
-                              ? t("confirm")
-                              : t("cancel"),
-                        ),
-                      ),
+                    revision.output && h("button", { type: "button", className: "uc-result", onClick: () => setReader(true), "aria-label": t("viewResult") },
+                      h("span", { className: "uc-result-heading" }, h(Icon, { name: "document" }), t("result"), h(Icon, { name: "open" })),
+                      h("span", { className: "uc-result-preview" }, resultPreview(resultValue))),
                   ),
             ),
             footer,
           ),
-        h(
+        collapsed && h(
           "button",
           {
             type: "button",
             className: "uc-anchor",
+            title: selected.title + " · " + statusText(t, revision.status),
+            "aria-description": statusText(t, revision.status) + " · " + progressLabel,
             "aria-label": collapsed ? t("expand") : t("collapse"),
             "aria-expanded": !collapsed,
             onClick: () => patch({ collapsed: !collapsed }),
           },
-          h(Icon, { name: "branch" }),
+          h(Dot, { status: revision.status }),
           h("span", null, selected.title),
           h(
             "small",
-            null,
+            { title: otherActive.length ? t("activeOther", { count: otherActive.length }) : t("completed") },
             otherActive.length
-              ? t("activeOther", { count: otherActive.length })
-              : statusText(t, revision.status),
+              ? progressLabel + " · +" + otherActive.length
+              : progressLabel,
           ),
         ),
       );
@@ -1011,10 +1038,10 @@ window.__ModuleLoader__.load({
             (props) => h(ComposerGlow, { ...props, key: props.sessionId }),
           ),
         );
-        ctx.slots.inject("conversation.composer.dock", () =>
+        ctx.slots.inject("conversation.session.header.actions", () =>
           ctx.slots.register(
             {
-              name: "conversation.composer.dock",
+              name: "conversation.session.header.actions",
               id: "ultracode-floating",
               order: 30,
               locale: "ultracode",
