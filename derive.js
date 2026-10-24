@@ -34,7 +34,7 @@ export function derivePlugins(source, config) {
     for (const row of rows) {
       const unavailable = disabled || !!row.disabled;
       if (row.name === ENGINE_MODULE)
-        engines.push({ row, rows, realm, unavailable });
+        engines.push({ row, realm, unavailable });
       if (row.name === TOOL_MODULE) tools.push({ row, realm, unavailable });
       if (row.name === POLICY_MODULE) policies.push(row);
       // Native model-selection delegation can register tools directly on each

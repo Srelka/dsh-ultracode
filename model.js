@@ -29,6 +29,10 @@ function patchRun(state, id, change) {
   if (!current) return state;
   return { ...state, runs: { ...state.runs, [id]: change(current) } };
 }
+function settleRunningMembers(members, status, time) {
+  return members.map(m => m.status === "running"
+    ? { ...m, status, endedAt: time } : m);
+}
 export function fold(state, event) {
   if (event.type === CHECKPOINT_RECORD) return foldCheckpoint(state, event);
   const d = event.data ?? {},
@@ -199,18 +203,7 @@ export function fold(state, event) {
       ...r,
       status: terminal(d.stopReason),
       endedAt: time,
-      members: r.members.map((m) =>
-        m.status === "running"
-          ? {
-              ...m,
-              status:
-                d.stopReason === "completed"
-                  ? "interrupted"
-                  : terminal(d.stopReason),
-              endedAt: time,
-            }
-          : m,
-      ),
+      members: settleRunningMembers(r.members, d.stopReason === "completed" ? "interrupted" : terminal(d.stopReason), time),
     }));
   if (event.type === "job/registered" || event.type === "job/settled") {
     if (d.kind !== "workflow") return state;
@@ -223,11 +216,7 @@ export function fold(state, event) {
           ...r,
           status: "interrupted",
           endedAt: time,
-          members: r.members.map((m) =>
-            m.status === "running"
-              ? { ...m, status: "interrupted", endedAt: time }
-              : m,
-          ),
+          members: settleRunningMembers(r.members, "interrupted", time),
         }));
     }
     return {
@@ -258,11 +247,7 @@ export function fold(state, event) {
               ...r,
               status: "interrupted",
               endedAt: time,
-              members: r.members.map((m) =>
-                m.status === "running"
-                  ? { ...m, status: "interrupted", endedAt: time }
-                  : m,
-              ),
+              members: settleRunningMembers(r.members, "interrupted", time),
             }
           : r,
       ]),

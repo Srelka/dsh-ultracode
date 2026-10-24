@@ -25,13 +25,13 @@
 
 从本仓库的 Release 下载 `.tgz`，在 DSH 的插件安装入口选择该安装包。CLI 用户可用：
 
-[下载 v1.3.2](https://github.com/Srelka/dsh-ultracode/releases/tag/v1.3.2)
+[下载最新发布版](https://github.com/Srelka/dsh-ultracode/releases/latest)
 
 ```powershell
-dsh plugin --profile web add ./srelka-dsh-ultracode-1.3.2.tgz
+dsh plugin --profile web add ./下载的安装包.tgz
 ```
 
-将 `web` 替换为实际使用的 profile。桌面端优先使用应用内插件管理入口。安装后完全退出并重新打开 DSH，在新会话的 Agent 预设中选择 **Ultracode**。
+将安装包路径与 `web` 替换为实际文件和 profile。桌面端优先使用应用内插件管理入口。安装后完全退出并重新打开 DSH，在新会话的 Agent 预设中选择 **Ultracode**。
 
 如果已经安装本地开发版 `@local/dsh-ultracode`，先通过 DSH 插件管理卸载该开发版，再安装本包，避免两个包同时注册同名预设。卸载插件不需要删除会话；本包沿用 `ultracode` 预设和历史标识。
 
@@ -65,6 +65,8 @@ node --test tests/model.test.mjs tests/composer-glow.test.mjs
 ```
 
 运行模块已经是 JavaScript，不要求用户执行构建脚本。打包使用 `npm pack --ignore-scripts`。`private: true` 用于防止误发布到 npm，不影响 Git/安装包分发。
+
+本仓库是唯一源码。开发时需要保留 `@local/dsh-ultracode` 安装标识，可用 Node.js 24 执行 `node scripts/prepare-local.mjs <仓库外的输出目录>`；文件清单与版本来自 `package.json`，仅替换本地模块标识并省略不随包安装的开发命令。加 `--check` 可核对安装目录与源码是否一致。生成器不删除原目录的依赖和额外文档；不要反向同步生成目录。发布包直接在本仓库运行 `npm pack --ignore-scripts`，无需另一份发布源码。
 
 ## 限制
 

@@ -1,6 +1,6 @@
 {
   "name": "@srelka/dsh-ultracode",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "private": true,
   "type": "module",
   "description": "Derive Ultracode from the effective standard preset at startup; override orchestration only.",

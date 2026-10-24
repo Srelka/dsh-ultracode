@@ -48,7 +48,6 @@ window.__ModuleLoader__.load({
       cancel: "停止运行",
       confirm: "确认停止",
       cancelError: "停止失败，请查看后台任务状态。",
-      details: "任务详情",
       openChild: "打开子 Agent",
       childUnavailable: "该子 Agent 当前不可打开。",
       activeOther: "另有 {count} 个工作流运行中",
@@ -58,11 +57,8 @@ window.__ModuleLoader__.load({
       initial: "初始执行",
       untitled: "未命名工作流",
       unknown: "未知状态",
-      model: "模型与思考强度继承主对话",
       background: "后台完成后自动继续",
-      resultFailed: "执行未完成，保留部分结果供排查。",
       reusedCaution: "包含主 Agent 声明及脚本检查点复用，具体依据见各项记录。",
-      closeMenu: "关闭工作流列表",
       busy: "正在停止…",
       move: "拖动工作流卡片；方向键移动，Home 或双击回到右上角",
     };
@@ -111,7 +107,6 @@ window.__ModuleLoader__.load({
       cancel: "Stop run",
       confirm: "Confirm stop",
       cancelError: "Could not stop the job. Check its status.",
-      details: "Task details",
       openChild: "Open agent",
       childUnavailable: "This agent is not available to open.",
       activeOther: "{count} other workflows running",
@@ -121,25 +116,20 @@ window.__ModuleLoader__.load({
       initial: "Initial run",
       untitled: "Untitled workflow",
       unknown: "Unknown status",
-      model: "Inherits the selected model and effort",
       background: "Completion resumes the main agent",
-      resultFailed: "The run did not complete. Partial results are retained.",
       reusedCaution:
         "Includes agent-declared reuse and completed script checkpoints; inspect each record's reason.",
-      closeMenu: "Close workflow list",
       busy: "Stopping…",
       move: "Drag workflow; arrow keys move, Home or double-click resets position",
     };
     const paths = {
       branch: "M6 3v12a3 3 0 0 0 3 3h3M6 8h8a4 4 0 0 0 4-4V3",
       chevron: "m8 4 6 6-6 6",
-      close: "M5 5l10 10M15 5 5 15",
       minus: "M4 10h12",
       check: "m4 10 4 4 8-8",
       error: "M10 4v7M10 15v.1",
       history: "M4 5v4h4M4.6 8a7 7 0 1 1 .3 6M10 6v4l3 2",
       open: "M12 3h5v5M17 3l-8 8M8 4H4v12h12v-4",
-      stop: "M5 5h10v10H5z",
     };
     function Icon({ name = "branch" }) {
       return h(
@@ -408,6 +398,84 @@ window.__ModuleLoader__.load({
 @media(prefers-reduced-motion:reduce){.uc-slot .uc-dot .uc-spinner{animation:none}.uc-slot .uc-spinner-track{opacity:.75}.uc-slot .uc-spinner-arc{display:none}}
 @media(max-width:600px){.uc-slot .uc-panel{width:min(350px,calc(100vw - 48px));border-radius:17px}.uc-slot .uc-body{padding:3px 15px 13px}.uc-slot .uc-member{min-height:44px}.uc-slot .uc-top{padding:12px 14px 8px}.uc-slot .uc-anchor small{display:none}}@media(prefers-reduced-transparency:reduce){.uc-slot .uc-panel,.uc-slot .uc-anchor{background:var(--uc-bg);backdrop-filter:none}}@media(prefers-reduced-motion:reduce){.uc-slot .uc-panel,.uc-slot .uc-drag-handle{transition:none}.uc-slot .uc-dragging{transform:none}}
 `;
+    const statusText = (t, status) => t(status in zh ? status : "unknown");
+    function WorkflowMenu({ workflows, selectedId, choose, t }) {
+      return h("div", { className: "uc-menu" },
+        ...workflows.slice().reverse().map((w) => h("button", {
+          type: "button", className: "uc-option", key: w.id,
+          "aria-pressed": selectedId === w.id, onClick: () => choose(w.id),
+        },
+          h("span", { className: "uc-option-label", title: w.title || t("untitled") },
+            h("strong", null, w.title || t("untitled")),
+            h("small", null, t("version", { version: w.revisions.at(-1).number }),
+              " · ", statusText(t, w.revisions.at(-1).status))),
+          h(Dot, { status: w.revisions.at(-1).status }))));
+    }
+
+    function RevisionHistory({ revisions, selectRevision, t }) {
+      return h("div", null, ...revisions.slice().reverse().map((r) =>
+        h("div", { className: "uc-revision", key: r.id },
+          h("div", { className: "uc-revision-heading" },
+            h("button", { type: "button", className: "uc-link", onClick: () => selectRevision(r.id) },
+              t("version", { version: r.number })),
+            h(Dot, { status: r.status }), statusText(t, r.status)),
+          h("p", null, r.reason || t(r.number === 1 ? "initial" : "replacement")),
+          h("small", null, new Date(r.startedAt).toLocaleString()),
+          r.reused.length > 0 && h("p", null,
+            t("reused", { count: r.reused.length }), " · ", t("reusedCaution"),
+            ...r.reused.map((source, i) => h("span", { key: i }, h("br"), source.reason))),
+          r.error && h("p", null, r.error))));
+    }
+
+    function MemberRow({ member: m, expanded, toggle, openMember, t }) {
+      const issue = memberIssue(m);
+      return h(React.Fragment, { key: m.seq },
+        h("button", {
+          type: "button", className: "uc-member", "aria-expanded": expanded, onClick: toggle,
+        },
+          h(Dot, { status: m.status }),
+          h("span", { className: "uc-member-name" }, m.label || `#${m.seq}`,
+            issue && h("small", { className: "uc-cause" }, t(issue.cause))),
+          h("span", { className: "uc-member-status" }, statusText(t, m.status))),
+        expanded && h("div", { className: "uc-detail" },
+          h("div", null, duration(m.startedAt, m.endedAt)),
+          m.reused && h("div", null, t("replayed")),
+          issue && h("div", { className: "uc-next" }, t(issue.action)),
+          issue && (m.diagnostic?.code || m.diagnostic?.message) &&
+            h("details", { className: "uc-technical" }, h("summary", null, t("technical")),
+              h("pre", null, [m.diagnostic.code, m.diagnostic.message].filter(Boolean).join("\n"))),
+          h("button", { type: "button", className: "uc-link", onClick: () => openMember(m.childId) },
+            t("openChild"), h(Icon, { name: "open" }))));
+    }
+
+    function WorkflowPhases({ revision, ui, patch, member, setMember, openMember, t }) {
+      const groups = new Map(revision.phases.map((title) => [title, []]));
+      for (const m of revision.members) {
+        const key = m.phase ?? t("phase");
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(m);
+      }
+      return h(React.Fragment, null, ...[...groups].map(([phase, members]) => {
+        const phaseKey = revision.id + ":" + phase;
+        const expanded = ui.phases?.[phaseKey] ??
+          (members.some(m => m.status === "running" || memberIssue(m)) || groups.size === 1);
+        return h("details", {
+          className: "uc-phase", key: phase, open: expanded,
+          onToggle: (e) => {
+            const open = e.currentTarget.open;
+            if (open !== expanded) patch({ phases: { ...ui.phases, [phaseKey]: open } });
+          },
+        },
+          h("summary", null, h(Icon, { name: "chevron" }), h("span", null, phase),
+            h("span", { className: "uc-phase-count" },
+              members.filter(m => m.status === "completed").length, " / ", members.length)),
+          members.length ? members.map(m => h(MemberRow, {
+            key: m.seq, member: m, expanded: member === m.seq,
+            toggle: () => setMember(v => v === m.seq ? null : m.seq), openMember, t,
+          })) : h("div", { className: "uc-empty" }, t("empty")));
+      }), !groups.size && h("div", { className: "uc-empty" }, t("empty")));
+    }
+
     function WorkflowDock({ sessionId, useProjection, killJob, openChild, t }) {
       const projection = useProjection("ultracode");
       const [ui, setUI] = useState(() => loadUI(sessionId)),
@@ -460,8 +528,7 @@ window.__ModuleLoader__.load({
       }, [menu]);
       if (!selected || !revision) return null;
       const collapsed = ui.collapsed === true,
-        live = ["running", "starting"].includes(revision.status),
-        statusText = (status) => t(status in zh ? status : "unknown");
+        live = ["running", "starting"].includes(revision.status);
       const patch = (change) => setUI((old) => ({ ...old, ...change }));
       const choose = (id) => {
         patch({ workflowId: id, revisionId: null });
@@ -471,17 +538,20 @@ window.__ModuleLoader__.load({
         setConfirm(false);
         setError("");
       };
-      const current = () => {
-        patch({ revisionId: null });
+      const selectRevision = (revisionId) => {
+        patch({ revisionId });
         setHistory(false);
         setMember(null);
       };
-      const groups = new Map(revision.phases.map((title) => [title, []]));
-      for (const m of revision.members) {
-        const key = m.phase ?? t("phase");
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key).push(m);
-      }
+      const openMember = async (childId) => {
+        try { await openChild(sessionId, childId); setError(""); }
+        catch { setError(t("childUnavailable")); }
+      };
+      const counts = revision.members.reduce((result, m) => {
+        if (m.reused) result.reused++;
+        else { result.started++; if (m.status === "completed") result.completed++; }
+        return result;
+      }, { started: 0, completed: 0, reused: 0 });
       const otherActive = active.filter((w) => w.id !== selected.id);
       const stopped = async () => {
         if (!confirm) {
@@ -504,7 +574,7 @@ window.__ModuleLoader__.load({
         "span",
         { className: "uc-status" },
         h(Dot, { status: revision.status }),
-        statusText(revision.status),
+        statusText(t, revision.status),
       );
       const footer = h(
         "div",
@@ -513,7 +583,7 @@ window.__ModuleLoader__.load({
           "span",
           null,
           h(Dot, { status: revision.status }),
-          live ? t("background") : statusText(revision.status),
+          live ? t("background") : statusText(t, revision.status),
         ),
         h(
           "button",
@@ -597,42 +667,7 @@ window.__ModuleLoader__.load({
                 ),
               ),
             ),
-            menu &&
-              h(
-                "div",
-                { className: "uc-menu" },
-                ...workflows
-                  .slice()
-                  .reverse()
-                  .map((w) =>
-                    h(
-                      "button",
-                      {
-                        type: "button",
-                        className: "uc-option",
-                        key: w.id,
-                        "aria-pressed": selected.id === w.id,
-                        onClick: () => choose(w.id),
-                      },
-                      h(
-                        "span",
-                        {
-                          className: "uc-option-label",
-                          title: w.title || t("untitled"),
-                        },
-                        h("strong", null, w.title || t("untitled")),
-                        h(
-                          "small",
-                          null,
-                          t("version", { version: w.revisions.at(-1).number }),
-                          " · ",
-                          statusText(w.revisions.at(-1).status),
-                        ),
-                      ),
-                      h(Dot, { status: w.revisions.at(-1).status }),
-                    ),
-                  ),
-              ),
+            menu && h(WorkflowMenu, { workflows, selectedId: selected.id, choose, t }),
             h(
               "div",
               { className: "uc-body" },
@@ -673,7 +708,7 @@ window.__ModuleLoader__.load({
                   t("historical"),
                   h(
                     "button",
-                    { type: "button", className: "uc-link", onClick: current },
+                    { type: "button", className: "uc-link", onClick: () => selectRevision(null) },
                     t("back"),
                   ),
                 ),
@@ -695,61 +730,7 @@ window.__ModuleLoader__.load({
               error &&
                 h("div", { className: "uc-errorbox", role: "alert" }, error),
               history
-                ? h(
-                    "div",
-                    null,
-                    ...selected.revisions
-                      .slice()
-                      .reverse()
-                      .map((r) =>
-                        h(
-                          "div",
-                          { className: "uc-revision", key: r.id },
-                          h(
-                            "div",
-                            { className: "uc-revision-heading" },
-                            h(
-                              "button",
-                              {
-                                type: "button",
-                                className: "uc-link",
-                                onClick: () => {
-                                  patch({ revisionId: r.id });
-                                  setHistory(false);
-                                  setMember(null);
-                                },
-                              },
-                              t("version", { version: r.number }),
-                            ),
-                            h(Dot, { status: r.status }),
-                            statusText(r.status),
-                          ),
-                          h(
-                            "p",
-                            null,
-                            r.reason ||
-                              t(r.number === 1 ? "initial" : "replacement"),
-                          ),
-                          h(
-                            "small",
-                            null,
-                            new Date(r.startedAt).toLocaleString(),
-                          ),
-                          r.reused.length > 0 &&
-                            h(
-                              "p",
-                              null,
-                              t("reused", { count: r.reused.length }),
-                              " · ",
-                              t("reusedCaution"),
-                              ...r.reused.map((source, i) =>
-                                h("span", { key: i }, h("br"), source.reason),
-                              ),
-                            ),
-                          r.error && h("p", null, r.error),
-                        ),
-                      ),
-                  )
+                ? h(RevisionHistory, { revisions: selected.revisions, selectRevision, t })
                 : h(
                     React.Fragment,
                     null,
@@ -762,114 +743,14 @@ window.__ModuleLoader__.load({
                     h(
                       "div",
                       { className: "uc-counts" },
-                      t("agents", { count: revision.members.filter(m=>!m.reused).length }),
+                      t("agents", { count: counts.started }),
                       " · ",
                       t("completed"),
                       " ",
-                      revision.members.filter((m) => m.status === "completed" && !m.reused)
-                        .length,
-                      revision.members.some(m=>m.reused) && ` · ${t("reused", {count:revision.members.filter(m=>m.reused).length})}`,
+                      counts.completed,
+                      counts.reused > 0 && ` · ${t("reused", {count:counts.reused})}`,
                     ),
-                    ...[...groups].map(([phase, members]) => {
-                      const phaseKey = revision.id + ":" + phase;
-                      const expanded =
-                        ui.phases?.[phaseKey] ??
-                        (members.some(
-                          (m) =>
-                            m.status === "running" || memberIssue(m),
-                        ) ||
-                          groups.size === 1);
-                      const rows = members.map((m) =>
-                        h(
-                          React.Fragment,
-                          { key: m.seq },
-                          h(
-                            "button",
-                            {
-                              type: "button",
-                              className: "uc-member",
-                              "aria-expanded": member === m.seq,
-                              onClick: () =>
-                                setMember((v) => (v === m.seq ? null : m.seq)),
-                            },
-                            h(Dot, { status: m.status }),
-                            h(
-                              "span",
-                              { className: "uc-member-name" },
-                              m.label || `#${m.seq}`,
-                              memberIssue(m) && h("small", { className: "uc-cause" }, t(memberIssue(m).cause)),
-                            ),
-                            h(
-                              "span",
-                              { className: "uc-member-status" },
-                              statusText(m.status),
-                            ),
-                          ),
-                          member === m.seq &&
-                            h(
-                              "div",
-                              { className: "uc-detail" },
-                              h("div", null, duration(m.startedAt, m.endedAt)),
-                              m.reused && h("div", null, t("replayed")),
-                              memberIssue(m) && h("div", { className: "uc-next" }, t(memberIssue(m).action)),
-                              memberIssue(m) && (m.diagnostic?.code || m.diagnostic?.message) &&
-                                h("details", { className: "uc-technical" }, h("summary", null, t("technical")),
-                                  h("pre", null, [m.diagnostic.code, m.diagnostic.message].filter(Boolean).join("\n"))),
-                              h(
-                                "button",
-                                {
-                                  type: "button",
-                                  className: "uc-link",
-                                  onClick: async () => {
-                                    try {
-                                      await openChild(sessionId, m.childId);
-                                      setError("");
-                                    } catch {
-                                      setError(t("childUnavailable"));
-                                    }
-                                  },
-                                },
-                                t("openChild"),
-                                h(Icon, { name: "open" }),
-                              ),
-                            ),
-                        ),
-                      );
-                      return h(
-                        "details",
-                        {
-                          className: "uc-phase",
-                          key: phase,
-                          open: expanded,
-                          onToggle: (e) => {
-                            const open = e.currentTarget.open;
-                            if (open !== expanded)
-                              patch({
-                                phases: { ...ui.phases, [phaseKey]: open },
-                              });
-                          },
-                        },
-                        h(
-                          "summary",
-                          null,
-                          h(Icon, { name: "chevron" }),
-                          h("span", null, phase),
-                          h(
-                            "span",
-                            { className: "uc-phase-count" },
-                            members.filter((m) => m.status === "completed")
-                              .length,
-                            " / ",
-                            members.length,
-                          ),
-                        ),
-                        members.length
-                          ? rows
-                          : h("div", { className: "uc-empty" }, t("empty")),
-                      );
-                    }),
-                    !groups.size &&
-                      h("div", { className: "uc-empty" }, t("empty")),
+                    h(WorkflowPhases, { revision, ui, patch, member, setMember, openMember, t }),
                     h(
                       "details",
                       { className: "uc-result" },
@@ -916,7 +797,7 @@ window.__ModuleLoader__.load({
             null,
             otherActive.length
               ? t("activeOther", { count: otherActive.length })
-              : statusText(revision.status),
+              : statusText(t, revision.status),
           ),
         ),
       );
