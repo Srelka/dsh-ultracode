@@ -10,7 +10,7 @@ test('compatibility admits tested and same-minor runtimes, excluding older and n
  const manifest=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url)));
  const accepts=version=>semver.satisfies(version,manifest.engines.dsh,{includePrerelease:true});
  assert(accepts('0.2.1-rc.2'));assert(accepts('0.2.2-rc.1'));assert(!accepts('0.2.1-rc.1'));assert(!accepts('0.3.0-alpha.1'));assert(!accepts('0.3.0'));
- assert.deepEqual(Object.keys(manifest.dependencies),['zod']);
+ assert.deepEqual(Object.keys(manifest.dependencies).sort(),['acorn','zod']);
 });
 const recipe = () => [
   {
@@ -77,6 +77,16 @@ test("restart derivation follows updated standard, while an existing snapshot st
   assert.equal(first.length, 3);
   assert.equal(second[0].config.prefix, "updated");
   assert.equal(second.at(-1).name, "future-tool");
+});
+
+test("Ultracode omits native delegation registrations without changing standard or providers", () => {
+  const source = recipe();
+  source[2].config.push({id:"spawn-tool",name:"@deepseek-ai/dsh-tool-subagent",config:{toolName:"subagent",modelSelectionSettings:true}});
+  source[2].config.push({id:"fork-tool",name:"@deepseek-ai/dsh-tool-subagent",config:{toolName:"subagent_fork",provider:"fork"}});
+  const before=structuredClone(source), derived=derivePlugins(source,config);
+  assert.deepEqual(source,before);
+  assert(derived[2].config.filter(x=>x.name==="@deepseek-ai/dsh-tool-subagent").every(x=>x.disabled===true));
+  assert.equal(derived[2].config[0].config.provider,"spawn");
 });
 test("disabled or missing native workflow never silently enables a replacement", () => {
   const source = recipe();
@@ -183,6 +193,7 @@ test("host helper API is resolved by Loader and fails on an unsupported contract
           validateMeta: fn,
           scopeOf: fn,
           scopeChainOf: fn,
+          appendPluginRecord: fn,
         };
       },
     },
@@ -193,6 +204,7 @@ test("host helper API is resolved by Loader and fails on an unsupported contract
     "@deepseek-ai/dsh-tools",
     "@deepseek-ai/dsh-workflow-ptc",
     "@deepseek-ai/dsh-scope",
+    "@deepseek-ai/dsh-session",
   ]);
   await assert.rejects(
     loadHostApi({ loader: { import: async () => ({}) } }),

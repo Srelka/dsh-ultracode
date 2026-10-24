@@ -9,7 +9,8 @@
 ## 功能
 
 - 选择 Ultracode 即授权编排：模型判断复杂任务并主动创建工作流，简单任务直接完成，无需重复要求。
-- 1.2.1 修复空白会话切换时遗漏后端能力的问题；切回标准会清除增强工具与提示，已有 Ultracode 会话恢复时补齐。
+- 1.3.0 保留 JavaScript 脚本编排，支持脚本文件、启动前校验、调整后复用已完成结果和会话恢复。
+- 复杂任务在实现前启动工作流；标准模式与已有会话的切换和恢复仍保持隔离。
 - 启动时动态继承当前标准预设，仅覆盖工作流编排策略、并发和总代理预算。
 - 使用 DSH 原生工作流、子代理、后台任务和完成通知；后台任务结束后可唤醒主对话。
 - 工作流卡片固定悬浮、可拖动和折叠，支持阶段、成员、执行结果和版本历史。
@@ -22,10 +23,10 @@
 
 从本仓库的 Release 下载 `.tgz`，在 DSH 的插件安装入口选择该安装包。CLI 用户可用：
 
-[下载 v1.2.1](https://github.com/Srelka/dsh-ultracode/releases/tag/v1.2.1)
+[下载 v1.3.0](https://github.com/Srelka/dsh-ultracode/releases/tag/v1.3.0)
 
 ```powershell
-dsh plugin --profile web add ./srelka-dsh-ultracode-1.2.1.tgz
+dsh plugin --profile web add ./srelka-dsh-ultracode-1.3.0.tgz
 ```
 
 将 `web` 替换为实际使用的 profile。桌面端优先使用应用内插件管理入口。安装后完全退出并重新打开 DSH，在新会话的 Agent 预设中选择 **Ultracode**。
@@ -65,7 +66,7 @@ node --test tests/model.test.mjs tests/composer-glow.test.mjs
 
 ## 限制
 
-任务拆分和结果质量取决于实际模型。进程崩溃后保留工作流历史，但不从脚本中间断点续跑。系统开启减少动态效果时只保留静态模式边缘。
+任务拆分和结果质量取决于实际模型。进程重启后保留工作流历史及已完成结果；恢复时从头运行脚本并复用有效前缀，不恢复运行中的 JavaScript 指令位置。工具参数格式错误仅在本步尚未执行工具时最多重试两次，不能保证所有模型永不输出错误。系统开启减少动态效果时只保留静态模式边缘。
 
 ## License
 

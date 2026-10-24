@@ -1,8 +1,20 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createWorkflowOwner } from "../workflow.js";
+import { createWorkflowOwner, backgroundWorkflowOutput } from "../workflow.js";
 import { emptyState, fold, latestAccepted } from "../model.js";
 import { api } from "./host-runtime.mjs";
+
+test("workflow status reads never hold the root turn open; other jobs retain native waits", async () => {
+  let job={kind:"workflow",status:"running"}, observed;
+  const native={description:"Read job",output:{render:()=>[{type:"text",text:"status"}]},execute:async args=>{observed=args;return {job};}};
+  const tool=backgroundWorkflowOutput({jobs:{get:(id,owner)=>{assert.equal(id,"j");assert.equal(owner,"owner");return job;}}},native,{id:"owner"});
+  const value=await tool.execute({job_id:"j",wait:true},{});
+  assert.equal(observed.wait,false);
+  assert.match(tool.output.render({},value)[1].text,/completion will wake/);
+  job={kind:"pwsh",status:"running"}; await tool.execute({job_id:"j",wait:true},{}); assert.equal(observed.wait,true);
+  job={kind:"workflow",status:"completed"}; await tool.execute({job_id:"j",wait:true},{}); assert.equal(observed.wait,true);
+  assert.equal(tool.output.render({},{job}).length,1);
+});
 
 function harness() {
   let state = emptyState({ agentPreset: "ultracode" }),
@@ -100,7 +112,9 @@ function harness() {
       maxTotalAgents: 8,
       replacementTimeoutMs: 1000,
     },
-    api,
+    { ...api, appendPluginRecord(session, type, data) {
+      state = fold(state, { type, data, seq: seq++, time: Date.now(), ignorable: true });
+    } },
   );
   const native = {
     name: "workflow",

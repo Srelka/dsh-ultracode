@@ -1,5 +1,5 @@
-// This projection consumes existing DSH events. It never invents progress or
-// appends a private event type to the user's session log.
+import { CHECKPOINT_RECORD, foldCheckpoint } from "./checkpoint.js";
+// Optional checkpoints are ignorable plugin records; legacy history is retained.
 export const PROJECTION_KEY = "ultracode";
 export const INTERRUPTED_DETAIL =
   "Ultracode: execution interrupted; runtime job no longer exists.";
@@ -9,6 +9,7 @@ export const emptyState = (header) => ({
   runs: {},
   jobs: {},
   reads: {},
+  checkpoints: {},
 });
 const textOf = (message) =>
   (message?.content ?? [])
@@ -27,6 +28,7 @@ function patchRun(state, id, change) {
   return { ...state, runs: { ...state.runs, [id]: change(current) } };
 }
 export function fold(state, event) {
+  if (event.type === CHECKPOINT_RECORD) return foldCheckpoint(state, event);
   const d = event.data ?? {},
     time = event.time ?? 0;
   if (event.type === "agent-preset/selected")
@@ -87,7 +89,8 @@ export function fold(state, event) {
           ...state,
           calls: {
             ...state.calls,
-            [callId]: { ...call, status: "accepted", accepted: true, receipt },
+            [callId]: { ...call, status: "accepted", accepted: true, receipt,
+              title: receipt.title ?? call.title, phases: receipt.phases ?? call.phases },
           },
         };
       return {
@@ -305,6 +308,7 @@ export function view(state) {
       number: receipt?.revision ?? group.revisions.length + 1,
       runId: receipt?.runId ?? null,
       jobId: receipt?.jobId ?? job?.id ?? null,
+      scriptPath: receipt?.scriptPath ?? null,
       title: call.title,
       reason: receipt?.reason ?? call.reason,
       status,
@@ -314,7 +318,7 @@ export function view(state) {
       phases: call.phases,
       members: run?.members ?? [],
       agentLimit: receipt?.agentLimit ?? null,
-      reused: receipt?.reused ?? [],
+      reused: [...(receipt?.reused ?? []), ...(run?.members ?? []).filter(m=>m.reused).map(m=>({ childId:m.childId, reason:"Exact completed prefix replayed from saved result." }))],
       replacedRunId: receipt?.replacedRunId ?? null,
       error: call.error || (status === "failed" ? job?.detail : null),
       output: job?.output ?? null,

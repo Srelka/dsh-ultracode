@@ -1,4 +1,7 @@
 import { Script } from "node:vm";
+import { randomUUID } from "node:crypto";
+import { resolveScriptFile } from "./script-file.js";
+import { checkpointScript, resumeEntries, CHECKPOINT_RECORD } from "./checkpoint.js";
 import {
   latestAccepted,
   view,
@@ -7,6 +10,26 @@ import {
 } from "./model.js";
 
 const isActive = (status) => status === "running" || status === "stopping";
+
+export function backgroundWorkflowOutput(ctx, native, agent) {
+  return {
+    ...native,
+    description: native.description + " For running Ultracode workflows this is a non-blocking status read. End the current turn when no independent work remains; completion will wake you automatically.",
+    output: {
+      ...native.output,
+      render(args, value) {
+        const content = native.output.render(args, value);
+        return value.job?.kind === "workflow" && isActive(value.job.status)
+          ? [...content, { type: "text", text: "Workflow continues in the background. Do not poll or wait again. Finish this turn with a progress update; completion will wake you to collect the result." }]
+          : content;
+      },
+    },
+    async execute(args, exec) {
+      const job = ctx.jobs.get(args.job_id, agent.id);
+      return native.execute(job?.kind === "workflow" && isActive(job.status) ? { ...args, wait: false } : args, exec);
+    },
+  };
+}
 const outcome = (result) =>
   result.stopReason === "completed"
     ? {
@@ -22,16 +45,18 @@ const outcome = (result) =>
 export function createWorkflowOwner(
   ctx,
   config,
-  { validateMeta, validateJsonSchemaValue, defineTool },
+  { validateMeta, validateJsonSchemaValue, defineTool, appendPluginRecord },
 ) {
   const active = new Map(),
     locks = new Map();
   const onMember = (type, info, member) => {
     const entry = active.get(info.id);
     if (!entry) return;
+    const logical = entry.calls.get(member.seq);
+    if (logical && type.endsWith("start")) logical.childId = member.childId;
     entry.session.append(type, {
       runId: info.id,
-      seq: member.seq,
+      seq: logical?.index ?? member.seq,
       ...(type.endsWith("start")
         ? {
             label: member.label,
@@ -52,9 +77,26 @@ export function createWorkflowOwner(
     entry?.job.updateProgress(title);
     entry?.job.append(`▸ ${title}\n`, { channel: "log" });
   });
-  ctx.on("workflow/log", (info, text) =>
-    active.get(info.id)?.job.append(text + "\n", { channel: "log" }),
-  );
+  ctx.on("workflow/log", (info, text) => {
+    const entry = active.get(info.id);
+    if (!entry) return;
+    if (!text.startsWith(entry.marker)) {
+      entry.job.append(text + "\n", { channel: "log" });
+      return;
+    }
+    const d = JSON.parse(text.slice(entry.marker.length));
+    if (d.kind === "begin") entry.calls.set(d.nativeIndex, d);
+    else if (d.kind === "hit" || d.kind === "result") {
+      const childId = d.childId ?? entry.calls.get(d.nativeIndex)?.childId;
+      if (!childId || d.value === null || d.value === undefined || Buffer.byteLength(JSON.stringify(d.value)) > 100000) return;
+      const record = { ...d, kind: "result", version: 1, runId: info.id, childId };
+      appendPluginRecord(entry.session, CHECKPOINT_RECORD, record);
+      if (d.kind === "hit") {
+        appendPluginRecord(entry.session, CHECKPOINT_RECORD, { ...record, kind: "hit" });
+        entry.job.append(`Reused completed result: ${d.label}\n`, { channel: "log" });
+      }
+    }
+  });
   ctx.effect(
     () => async () => {
       const runs = [...active.values()];
@@ -116,8 +158,9 @@ export function createWorkflowOwner(
         "Previous execution is still stopping; the replacement was not started. Retry after it settles.",
       );
   }
-  function start(agent, args, exec, receipt) {
+  function start(agent, args, exec, receipt, cached, route) {
     let run;
+    const marker = `ultracode-checkpoint:${randomUUID()}:`;
     const jobId = ctx.jobs.start({
       kind: "workflow",
       label: args.meta.description || args.meta.name,
@@ -125,19 +168,20 @@ export function createWorkflowOwner(
       toolCall: { callId: exec.callId, rootCallId: exec.rootCallId },
       run: (job) => {
         run = ctx.workflowEngine.start({
-          script: args.script,
+          script: checkpointScript(args.script, cached, marker),
           meta: args.meta,
           ...(args.args === undefined ? {} : { args: args.args }),
           parent: agent,
           maxTotalAgents: receipt.agentLimit,
         });
-        const entry = { run, session: agent.session, job };
+        const entry = { run, session: agent.session, job, marker, calls: new Map() };
         try {
           agent.session.append("tool-workflow/run-start", {
             runId: run.id,
             name: run.meta.name,
           });
           active.set(run.id, entry);
+          appendPluginRecord(agent.session, CHECKPOINT_RECORD, { version: 1, kind: "init", runId: run.id, route });
         } catch (error) {
           run.cancel("Failed to record workflow start");
           void run.dispose().catch((e) => ctx.logger.warn(String(e)));
@@ -210,6 +254,8 @@ export function createWorkflowOwner(
     build(native, agent) {
       const properties = {
         ...native.parameters.properties,
+        script_path: { type: "string", minLength: 1, description: "Preferred: workspace .js file beginning with export const meta = { name, description, phases? }; followed by the workflow body. Omit script and meta when using this." },
+        resume: { type: "boolean", description: "With workflow_id: reuse only the exact successful prefix of the previous revision. First changed or missing result invalidates all subsequent reuse. Default false." },
         workflow_id: {
           type: "string",
           minLength: 1,
@@ -251,19 +297,19 @@ export function createWorkflowOwner(
             "Optional declared reuse from completed members of the previous version. Inspect their actual result and recheck applicability first. Pass required data explicitly in args; this does not restore a running script.",
         },
       };
-      const parameters = { ...native.parameters, properties };
+      const parameters = { ...native.parameters, properties, required: [] };
       return {
         ...native,
         parameters,
         description:
           native.description +
-          "\nUltracode: substantive tasks use this workflow automatically. Execution is always background. Revisions stop and join the previous execution before starting a replacement. Receipt supplies workflowId/revision. Preserve the selected model/effort unless the user explicitly requests a different route.",
+          "\nUltracode: use script_path for substantive workflows; write the .js file with export const meta first, then call this tool using the short path. Legacy inline script + meta remains supported. Execution is always background. Revisions join the previous execution before starting; resume:true replays the exact completed prefix. Preserve the selected model/effort.",
         output: {
           schema: { type: "object", additionalProperties: true },
           render: (_args, value) => [
             {
               type: "text",
-              text: `Workflow started in background. ${JSON.stringify(value)}\nYou may finish this turn; completion wakes you. Do not busy-poll. Use job_output after completion to read the result. Retain workflowId and revision when revising this task.`,
+              text: `Workflow started in background. ${JSON.stringify(value)}\nYou may finish this turn; completion wakes you. Do not busy-poll. Use job_output after completion to read the result. Retain workflowId and revision when revising this task. Cached prefix calls do not spawn agents. Native child numbers restart per execution; inspect ultracode_workflows for the actual logical labels and reused members before deciding a child is duplicated.`,
             },
           ],
           presentationMeta: (_args, value) => ({ ultracode: value.ultracode }),
@@ -279,7 +325,14 @@ export function createWorkflowOwner(
               "Only the owning root agent may orchestrate Ultracode workflows.",
             );
           exec.signal.throwIfAborted();
+          if (args.script_path !== undefined) {
+            if (args.script !== undefined || args.meta !== undefined) throw new Error("Use script_path OR inline script and meta, not both.");
+            const loaded = await resolveScriptFile(ctx, agent, args.script_path, exec.signal);
+            args = { ...args, script_path: loaded.path, script: loaded.script, meta: loaded.meta };
+          }
+          if (typeof args.script !== "string" || !args.meta) throw new Error("Provide script_path or both script and meta.");
           new Script(`(async()=>{\n${args.script}\n})`);
+          new Script(`(async()=>{\n${checkpointScript(args.script, [], "validate:")}\n})`);
           validateMeta(args.meta);
           const {
             workflow_id,
@@ -287,6 +340,8 @@ export function createWorkflowOwner(
             change_reason,
             reuse_results = [],
             agent_limit = config.defaultAgentLimit,
+            script_path,
+            resume = false,
             ...nativeArgs
           } = args;
           if (
@@ -331,7 +386,7 @@ export function createWorkflowOwner(
                 );
               if (
                 !current &&
-                (expected_revision !== undefined || reuse_results.length)
+                (expected_revision !== undefined || reuse_results.length || resume)
               )
                 throw new Error(
                   "New workflows cannot refer to an earlier revision or reused member.",
@@ -354,6 +409,10 @@ export function createWorkflowOwner(
                   "Superseded: " + change_reason,
                 );
               exec.signal.throwIfAborted();
+              const route = JSON.stringify(agent.session.requestHeader?.()?.config ?? {
+                provider: agent.options.provider, model: agent.options.model, reasoningEffort: agent.options.reasoningEffort,
+              });
+              const cached = resume && current ? resumeEntries(state(agent), current.runId, route) : [];
               return start(agent, clean, exec, {
                 workflowId: workflow_id || exec.callId,
                 revision: (current?.number ?? 0) + 1,
@@ -361,7 +420,11 @@ export function createWorkflowOwner(
                 replacedRunId: current?.runId ?? null,
                 reused: reuse_results,
                 agentLimit: agent_limit,
-              });
+                replayCandidates: cached.length,
+                scriptPath: script_path ?? null,
+                title: clean.meta.description || clean.meta.name,
+                phases: (clean.meta.phases ?? []).map(p => p.title),
+              }, cached, route);
             },
           );
         },

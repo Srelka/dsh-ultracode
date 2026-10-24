@@ -11,7 +11,7 @@ const { createScope, bindScopeParent, scopeTarget } = await hostImport("@deepsee
 
 // Real host scopes, event routing, prompt layers and tool registry. Only the
 // idle agent catalog and execution services are stubbed; no model is called.
-async function harness(t) {
+async function harness(t, availableDelegation = ["subagent", "subagent_fork"]) {
   const root = new Context();
   let ctx = root;
   const agents = new Map();
@@ -20,6 +20,8 @@ async function harness(t) {
   ctx.provide("workflowEngine", { start() { throw Error("not an execution test"); } });
   ctx.provide("jobs", { start() {}, get() {}, list: () => [], kill() {}, wait() {} });
   ctx.provide("sessionProjections", { stateOf: () => emptyState({ agentPreset: "ultracode" }) });
+  ctx.provide("fs", {});
+  ctx.provide("workingDirectory", {});
   await ctx.plugin(SystemPrompt, {}).await();
   await ctx.plugin(Tools, {}).await();
   await root.inject(["tools", "systemPrompt"], (injected) => { ctx = injected; }).await();
@@ -28,6 +30,7 @@ async function harness(t) {
   const native = { name: "workflow", description: "native workflow", parameters: { type: "object", properties: {} }, output: { schema: {}, render: () => [] }, execute: async () => null };
   for (const scope of [standard, ultra]) {
     scope.ctx.tools.register(native);
+    for (const name of availableDelegation) scope.ctx.tools.register({ ...native, name });
     scope.ctx.systemPrompt.section({ name: "tool:workflow", order: 50, text: "ONLY when explicitly asked" });
   }
   const fiber = ultra.ctx.plugin(policy, policy.Config.parse({}));
@@ -64,12 +67,14 @@ async function harness(t) {
     assert.doesNotMatch(s.prompt, /ONLY when explicitly asked/);
     assert.equal(s.tools.filter((x) => x.name === "ultracode_workflows").length, 1);
     assert(s.tools.find((x) => x.name === "workflow").parameters.properties.agent_limit);
+    assert(!s.tools.some(x=>["subagent", "subagent_fork"].includes(x.name)));
   }
   function assertStandard(s) {
     assert.match(s.prompt, /ONLY when explicitly asked/);
     assert.doesNotMatch(s.prompt, /Ultracode is selected/);
     assert(!s.tools.some((x) => x.name === "ultracode_workflows"));
     assert(!s.tools.find((x) => x.name === "workflow").parameters.properties.agent_limit);
+    assert(s.tools.some(x=>x.name === "subagent_fork"));
   }
   return { ctx, create, select, snapshot, assertUltra, assertStandard, fiber };
 }
@@ -79,6 +84,16 @@ test("blank standard session switches to Ultracode before its first model reques
   h.assertStandard(await h.snapshot(a));
   h.select(a, "ultracode");
   h.assertUltra(await h.snapshot(a));
+});
+
+test("model-specific absent delegation tools do not roll back Ultracode policy", async (t) => {
+  const h = await harness(t, ["subagent_fork"]), a = await h.create("model-specific", "ultracode");
+  h.assertUltra(await h.snapshot(a));
+  h.select(a, "standard"); h.assertStandard(await h.snapshot(a));
+  const child = await h.create("model-worker", "ultracode", 1);
+  const snapshot = await h.snapshot(child);
+  assert.match(snapshot.prompt, /You are a workflow worker/);
+  assert(!snapshot.tools.some(x => ["subagent_fork", "workflow"].includes(x.name)));
 });
 
 test("switching back cleans up, repeated selections do not duplicate, sessions stay isolated", async (t) => {

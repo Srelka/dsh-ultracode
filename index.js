@@ -5,13 +5,14 @@ export function apply(ctx) {
   const record = z.record(z.string(), z.unknown());
   ctx.sessionProjections.register({
     key: PROJECTION_KEY,
-    stateVersion: 3,
+    stateVersion: 4,
     stateSchema: z.object({
       enabled: z.boolean(),
       calls: record,
       runs: record,
       jobs: record,
       reads: z.record(z.string(), z.string()),
+      checkpoints: record,
     }),
     init: emptyState,
     apply: fold,

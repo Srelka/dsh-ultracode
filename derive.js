@@ -37,6 +37,11 @@ export function derivePlugins(source, config) {
         engines.push({ row, rows, realm, unavailable });
       if (row.name === TOOL_MODULE) tools.push({ row, realm, unavailable });
       if (row.name === POLICY_MODULE) policies.push(row);
+      // Native model-selection delegation can register tools directly on each
+      // agent; inherited tool restrictions cannot hide those registrations.
+      // Ultracode delegates through workflow(), so omit these competing tools
+      // from this derived preset only. The native providers remain available.
+      if (row.name === "@deepseek-ai/dsh-tool-subagent") row.disabled = true;
       if (
         row.group === true ||
         row.name === "cordis:group" ||

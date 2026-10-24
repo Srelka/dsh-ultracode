@@ -22,7 +22,8 @@ window.__ModuleLoader__.load({
       agents: "已启动 {count} 个代理",
       limit: "代理上限 {count}",
       version: "v{version}",
-      reused: "声明复用 {count} 项结果",
+      reused: "复用 {count} 项结果",
+      replayed: "已复用完成结果",
       result: "执行结果",
       noResult: "主 Agent 读取后台结果后会显示在这里。",
       cancel: "停止运行",
@@ -41,7 +42,7 @@ window.__ModuleLoader__.load({
       model: "模型与思考强度继承主对话",
       background: "后台完成后自动继续",
       resultFailed: "执行未完成，保留部分结果供排查。",
-      reusedCaution: "复用为主 Agent 的声明；具体依据见调整原因。",
+      reusedCaution: "包含主 Agent 声明及脚本检查点复用，具体依据见各项记录。",
       closeMenu: "关闭工作流列表",
       busy: "正在停止…",
       move: "拖动工作流卡片；方向键移动，Home 或双击回到右上角",
@@ -64,7 +65,8 @@ window.__ModuleLoader__.load({
       agents: "{count} agents started",
       limit: "Agent cap {count}",
       version: "v{version}",
-      reused: "{count} results declared reusable",
+      reused: "{count} results reused",
+      replayed: "Completed result replayed",
       result: "Result",
       noResult:
         "The result appears after the main agent reads the background output.",
@@ -85,7 +87,7 @@ window.__ModuleLoader__.load({
       background: "Completion resumes the main agent",
       resultFailed: "The run did not complete. Partial results are retained.",
       reusedCaution:
-        "Reuse is declared by the main agent; inspect its stated reason.",
+        "Includes agent-declared reuse and completed script checkpoints; inspect each record's reason.",
       closeMenu: "Close workflow list",
       busy: "Stopping…",
       move: "Drag workflow; arrow keys move, Home or double-click resets position",
@@ -339,7 +341,7 @@ window.__ModuleLoader__.load({
 .uc-slot .uc-top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:15px 17px 9px}.uc-slot .uc-brand{display:flex;align-items:center;gap:7px;color:var(--uc-muted);font-size:11px}.uc-slot .uc-tools{display:flex;align-items:center;gap:4px}.uc-slot .uc-picker{display:flex;align-items:center;gap:5px;background:none;border:0;font-size:11px;color:var(--uc-muted);padding:3px}.uc-slot .uc-picker svg{width:11px;height:11px;transform:rotate(90deg)}
 .uc-slot .uc-body{padding:3px 20px 15px}.uc-slot .uc-title{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.uc-slot h3{font-size:16px;font-weight:550;line-height:1.5;letter-spacing:-.3px;margin:0;overflow-wrap:anywhere}.uc-slot .uc-status{display:flex;align-items:center;gap:5px;font-size:10px;white-space:nowrap;color:var(--uc-muted)}.uc-slot .uc-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 15px;color:var(--uc-muted);font-size:10px;font-variant-numeric:tabular-nums}.uc-slot .uc-link{background:none;border:0;color:var(--uc-blue);padding:0;font-size:11px;text-align:left}.uc-slot .uc-link:hover{text-decoration:underline;text-underline-offset:3px}
 .uc-slot .uc-dot{width:12px;height:12px;display:inline-grid;place-items:center;color:var(--uc-muted);border:1px solid color-mix(in srgb,var(--uc-muted) 60%,transparent);border-radius:50%;flex:none}.uc-slot .uc-dot svg{width:10px;height:10px}.uc-slot .uc-dot.uc-running,.uc-slot .uc-dot.uc-starting{color:var(--uc-blue);border-color:var(--uc-blue);border-right-color:transparent}.uc-slot .uc-dot.uc-failed{color:var(--uc-error);border-color:var(--uc-error)}.uc-slot .uc-dot.uc-replaced{border-style:dashed}
-.uc-slot .uc-banner{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;margin-bottom:12px;border-radius:8px;background:color-mix(in srgb,var(--uc-blue) 6%,transparent);font-size:11px;color:var(--uc-muted);overflow-wrap:anywhere}.uc-slot .uc-errorbox{font-size:11px;color:var(--uc-error);background:color-mix(in srgb,var(--uc-error) 6%,transparent);padding:9px 10px;border-radius:7px;margin-bottom:12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.uc-slot .uc-banner{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;margin-bottom:12px;border-radius:8px;background:color-mix(in srgb,var(--uc-blue) 6%,transparent);font-size:11px;color:var(--uc-muted);overflow-wrap:anywhere}.uc-slot .uc-errorbox{max-height:96px;overflow:auto;font-size:11px;color:var(--uc-error);background:color-mix(in srgb,var(--uc-error) 6%,transparent);padding:9px 10px;border-radius:7px;margin-bottom:12px;white-space:pre-wrap;overflow-wrap:anywhere}
 .uc-slot .uc-counts{font-size:10px;color:var(--uc-muted);padding:0 0 10px}.uc-slot .uc-phase{border-top:1px solid color-mix(in srgb,var(--uc-line) 65%,transparent)}.uc-slot .uc-phase summary{cursor:pointer;display:flex;align-items:center;gap:7px;padding:10px 0;list-style:none;font-size:11px}.uc-slot .uc-phase summary::-webkit-details-marker{display:none}.uc-slot .uc-phase summary>svg{width:11px;height:11px;color:var(--uc-muted)}.uc-slot .uc-phase[open] summary>svg{transform:rotate(90deg)}.uc-slot .uc-phase summary>span:first-of-type{flex:1;overflow-wrap:anywhere}.uc-slot .uc-phase-count{font-size:10px;color:var(--uc-muted)}
 .uc-slot .uc-member{width:100%;display:flex;align-items:center;gap:9px;border:0;border-radius:6px;background:none;padding:10px 2px;text-align:left}.uc-slot .uc-member:hover,.uc-slot .uc-member[aria-expanded=true]{background:color-mix(in srgb,var(--uc-bg) 65%,transparent)}.uc-slot .uc-member-name{flex:1;min-width:0;font-size:12px;overflow-wrap:anywhere}.uc-slot .uc-member-status{font-size:10px;color:var(--uc-muted)}.uc-slot .uc-detail{padding:4px 4px 12px 23px;font-size:11px;line-height:1.8;overflow-wrap:anywhere;color:var(--uc-muted)}.uc-slot .uc-empty{padding:7px 0 14px;font-size:11px;color:var(--uc-muted)}
 .uc-slot .uc-footer{padding:11px 18px 13px;border-top:1px solid color-mix(in srgb,var(--uc-line) 70%,transparent);display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;color:var(--uc-muted)}.uc-slot .uc-footer>span{display:flex;gap:5px;align-items:center}.uc-slot .uc-history{border:0;background:none;color:var(--uc-muted);font-size:10px;padding:0;display:flex;align-items:center;gap:4px}.uc-slot .uc-history svg{width:12px;height:12px}
@@ -701,12 +703,13 @@ window.__ModuleLoader__.load({
                     h(
                       "div",
                       { className: "uc-counts" },
-                      t("agents", { count: revision.members.length }),
+                      t("agents", { count: revision.members.filter(m=>!m.reused).length }),
                       " · ",
                       t("completed"),
                       " ",
-                      revision.members.filter((m) => m.status === "completed")
+                      revision.members.filter((m) => m.status === "completed" && !m.reused)
                         .length,
+                      revision.members.some(m=>m.reused) && ` · ${t("reused", {count:revision.members.filter(m=>m.reused).length})}`,
                     ),
                     ...[...groups].map(([phase, members]) => {
                       const phaseKey = revision.id + ":" + phase;
@@ -747,6 +750,7 @@ window.__ModuleLoader__.load({
                               "div",
                               { className: "uc-detail" },
                               h("div", null, duration(m.startedAt, m.endedAt)),
+                              m.reused && h("div", null, t("replayed")),
                               h(
                                 "button",
                                 {
