@@ -23,10 +23,10 @@
 
 从本仓库的 Release 下载 `.tgz`，在 DSH 的插件安装入口选择该安装包。CLI 用户可用：
 
-[下载 v1.3.0](https://github.com/Srelka/dsh-ultracode/releases/tag/v1.3.0)
+[下载 v1.3.1](https://github.com/Srelka/dsh-ultracode/releases/tag/v1.3.1)
 
 ```powershell
-dsh plugin --profile web add ./srelka-dsh-ultracode-1.3.0.tgz
+dsh plugin --profile web add ./srelka-dsh-ultracode-1.3.1.tgz
 ```
 
 将 `web` 替换为实际使用的 profile。桌面端优先使用应用内插件管理入口。安装后完全退出并重新打开 DSH，在新会话的 Agent 预设中选择 **Ultracode**。
