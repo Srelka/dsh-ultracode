@@ -15,7 +15,7 @@ test("local distribution derives all shipped files and version from the public s
   assert.equal(lock.packages[""].name, pkg.name);
   assert.ok(files.has("diagnostics.js")); assert.ok(files.has("inherit.js"));
   assert.ok(files.has("locale/zh.json"));
-  assert.ok(files.has("docs/images/ultracode-light.jpg"));
+  assert.ok(files.has("docs/images/ultracode-card.png"));
   assert.ok(![...files.keys()].some(p => /^(node_modules|tests|scripts|\.git)[/\\]/.test(p)));
   assert.ok(files.get("cordis.patch.yml").toString().includes("@local/dsh-ultracode"));
 });

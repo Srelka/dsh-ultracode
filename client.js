@@ -7,6 +7,11 @@ window.__ModuleLoader__.load({
     const { MarkdownText } = require("@deepseek-ai/dsh-client-ui-primitives");
     const zh = {
       workflows: "工作流",
+      allTasks: "全部 {count} 项",
+      moreTasks: "另有 {count} 项",
+      stages: "阶段",
+      follow: "跟随进度",
+      pending: "待开始",
       running: "运行中",
       starting: "启动中",
       completed: "已完成",
@@ -72,6 +77,11 @@ window.__ModuleLoader__.load({
     };
     const en = {
       workflows: "Workflows",
+      allTasks: "All {count} tasks",
+      moreTasks: "{count} more",
+      stages: "Stages",
+      follow: "Follow progress",
+      pending: "Pending",
       running: "Running",
       starting: "Starting",
       completed: "Completed",
@@ -423,6 +433,14 @@ window.__ModuleLoader__.load({
 @media(max-width:600px){.uc-slot .uc-reader{width:calc(100vw - 20px);max-height:calc(100dvh - 24px);border-radius:14px}.uc-reader-shell{max-height:calc(100dvh - 26px)}.uc-reader-header{padding:16px}.uc-reader-body{padding:18px}}
 @media(prefers-reduced-motion:reduce){.uc-slot .uc-progress>span{transition:none}}
 
+.uc-slot .uc-body{padding:3px 19px 0;overflow:hidden;flex:1 1 auto}.uc-slot .uc-top{padding:10px 15px 5px}.uc-slot .uc-drag-handle{padding:2px 0}.uc-slot .uc-meta{margin:3px 0 7px;font-size:10px}.uc-slot .uc-title{align-items:flex-start}.uc-slot .uc-title h3{flex:1;min-width:0}.uc-slot .uc-progress-count{padding-top:3px;white-space:nowrap}.uc-slot .uc-footer{padding:8px 17px;gap:10px}.uc-slot .uc-footer-actions{display:flex;align-items:center;gap:12px}.uc-slot .uc-all-tasks{background:none;border:0;padding:0;display:flex;align-items:center;gap:5px;font-size:11px;color:var(--uc-muted)}.uc-slot .uc-footer .uc-result{display:grid;place-items:center;width:22px;height:22px;margin:0;padding:0;border:0;background:none;border-radius:5px}.uc-slot .uc-footer .uc-result:hover{background:var(--uc-line)}.uc-slot .uc-footer .uc-history{height:22px}.uc-slot .uc-run-note{display:block;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;border:0;background:none;color:var(--uc-muted);font-size:11px;padding:0;margin:0 0 7px;text-align:left}.uc-slot .uc-progress{height:3px;margin-bottom:8px;overflow:visible}.uc-slot .uc-progress>span{position:relative;border-radius:999px;background:linear-gradient(90deg,color-mix(in srgb,#9679c4 48%,var(--uc-bg)),#a68acb 68%,#c6a9e5 calc(100% - 14px),#eadcf9);box-shadow:0 0 6px #a888d526}
+.uc-slot .uc-stream{position:absolute;inset:0;overflow:hidden;border-radius:inherit;mask-image:linear-gradient(90deg,transparent,#000 8px,#000 calc(100% - 16px),transparent);pointer-events:none}.uc-slot .uc-stream:after{content:"";position:absolute;inset:0 auto 0 0;width:60%;background:linear-gradient(90deg,transparent,#b897e560 25%,#d6b9f5 49%,#fff6ff 66%,#c6a2ed 76%,transparent);display:none}.uc-slot .uc-comet{position:absolute;right:-2px;top:0;width:7px;height:3px;border-radius:50%;pointer-events:none;background:linear-gradient(90deg,transparent,#d8c0f1 48%,#fffaff 90%);box-shadow:0 0 5px 1px #a888d56b,2px 0 10px #a888d533;opacity:.65;display:none}.uc-slot .uc-sparks{position:absolute;right:0;top:1px;width:0;height:0;pointer-events:none;display:none}.uc-slot .uc-sparks i{position:absolute;width:2px;height:1px;border-radius:50%;background:#c6a4e6;box-shadow:0 0 3px #a888d573;opacity:0;--sx:17px;--sy:-5px}.uc-slot .uc-sparks i:nth-child(2){--sx:12px;--sy:5px;width:1.5px;animation-delay:65ms}.uc-slot .uc-sparks i:nth-child(3){--sx:22px;--sy:-1px;width:1px;animation-delay:143ms}.uc-slot .uc-flowing .uc-stream:after{display:block;animation:uc-comet-flow 2600ms cubic-bezier(.35,0,.65,1) infinite}.uc-slot .uc-flowing .uc-comet{display:block;animation:uc-comet-charge 2600ms ease-in-out infinite}.uc-slot .uc-flowing .uc-sparks{display:block}.uc-slot .uc-flowing .uc-sparks i{animation-name:uc-spark-drift;animation-duration:2600ms;animation-timing-function:linear;animation-iteration-count:infinite}
+@keyframes uc-comet-flow{from{transform:translateX(-105%)}to{transform:translateX(172%)}}@keyframes uc-comet-charge{0%,55%,100%{opacity:.65;transform:scaleX(.95)}73%{opacity:1;transform:scaleX(1.18)}88%{opacity:.78;transform:scaleX(1.03)}}@keyframes uc-spark-drift{0%,67%{opacity:0;transform:translate(0,0) scaleX(.6)}73%{opacity:.8;transform:translate(calc(var(--sx)*.2),calc(var(--sy)*.2)) scaleX(1.4)}85%{opacity:.3;transform:translate(calc(var(--sx)*.7),calc(var(--sy)*.7)) scaleX(1)}96%,100%{opacity:0;transform:translate(var(--sx),var(--sy)) scaleX(.5)}}
+.uc-slot .uc-bookmarks{height:222px;position:relative}.uc-slot .uc-many-phases{height:246px}.uc-slot .uc-rail{position:absolute;left:-3px;top:12px;width:28px;display:grid;grid-auto-rows:48px;isolation:isolate}.uc-slot .uc-rail-line{position:absolute;left:13.5px;top:16px;width:1px;background:var(--uc-line);z-index:-2}.uc-slot .uc-rail-selection{position:absolute;left:0;top:0;width:28px;height:32px;border-radius:11px;background:color-mix(in srgb,#a888d5 12%,var(--uc-bg));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--uc-bg) 70%,transparent),0 3px 9px #a888d517;transform:translateY(calc(var(--uc-phase)*48px));transition:transform 360ms cubic-bezier(.22,.8,.25,1);z-index:-1}.uc-slot .uc-node{display:grid;place-items:center;width:28px;height:32px;border:0;background:none;padding:0;border-radius:10px}.uc-slot .uc-node:hover{background:color-mix(in srgb,#a888d5 8%,transparent)}.uc-slot .uc-node .uc-dot{background:var(--uc-bg)}.uc-slot .uc-node[aria-current=step] .uc-dot{background:transparent}.uc-slot .uc-phase-focus{position:absolute;left:40px;right:0;top:16px;transform:translateY(calc(var(--uc-phase)*48px));transition:transform 360ms cubic-bezier(.22,.8,.25,1)}.uc-slot .uc-phase-content{animation:uc-phase-arrive 280ms 80ms ease both}.uc-slot .uc-phase-heading{height:24px;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}.uc-slot .uc-phase-heading h4{font-size:13px;font-weight:500;line-height:24px;margin:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.uc-slot .uc-phase-heading small,.uc-slot .uc-phase-context small{font-size:10px;color:var(--uc-muted);font-variant-numeric:tabular-nums;white-space:nowrap}.uc-slot .uc-member-preview{height:44px;min-height:0;padding:3px 0}.uc-slot .uc-member-preview .uc-member-name{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:11px}.uc-slot .uc-member-preview .uc-cause{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.uc-slot .uc-phase-context{position:absolute;left:40px;right:0;height:24px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0;background:none;border:0;text-align:left;color:var(--uc-muted);font-size:12px}.uc-slot .uc-phase-context>span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.uc-slot .uc-phase-context:hover{color:var(--uc-ink)}.uc-slot .uc-phase-more{display:flex;align-items:center;gap:5px;padding:3px 0;border:0;background:none;color:var(--uc-muted);font-size:10px}.uc-slot .uc-phase-more svg{width:11px;height:11px}.uc-slot .uc-follow{position:absolute;bottom:2px;right:0;border:0;background:none;color:var(--uc-blue);padding:0;font-size:10px}.uc-slot .uc-stage-picker{position:absolute;bottom:2px;left:0;max-width:65%;background:var(--uc-bg);color:var(--uc-muted);border:0;font:inherit;font-size:10px;outline-offset:2px}.uc-slot .uc-task-group{margin-bottom:24px}.uc-slot .uc-task-group h3{display:flex;justify-content:space-between;gap:12px;font-size:13px;font-weight:500;margin:0 0 8px}.uc-slot .uc-task-group h3 small{font-size:11px;color:var(--uc-muted)}.uc-slot .uc-task-note{font-size:12px;line-height:1.7;color:var(--uc-muted)}
+@keyframes uc-phase-arrive{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.uc-slot .uc-phase-focus,.uc-slot .uc-rail-selection{transition:none}.uc-slot .uc-phase-content,.uc-slot .uc-flowing .uc-comet{animation:none}.uc-slot .uc-flowing .uc-stream:after,.uc-slot .uc-flowing .uc-sparks{display:none}}
+@media(max-height:580px){.uc-slot .uc-bookmarks{height:138px}.uc-slot .uc-bookmarks .uc-member-preview,.uc-slot .uc-bookmarks .uc-empty,.uc-slot .uc-bookmarks .uc-phase-more,.uc-slot .uc-follow,.uc-slot .uc-stage-picker{display:none}.uc-slot .uc-phase-heading{margin-bottom:4px}.uc-slot .uc-meta{margin:4px 0 8px}}
+
 `;
     const statusText = (t, status) => t(status in zh ? status : "unknown");
     function WorkflowMenu({ workflows, selectedId, choose, t }) {
@@ -457,7 +475,7 @@ window.__ModuleLoader__.load({
       const issue = memberIssue(m);
       return h(React.Fragment, { key: m.seq },
         h("button", {
-          type: "button", className: "uc-member", "aria-expanded": expanded, onClick: toggle,
+          type: "button", className: "uc-member", "data-member-seq": m.seq, "aria-expanded": expanded, onClick: toggle,
         },
           h(Dot, { status: m.status }),
           h("span", { className: "uc-member-name" }, m.label || `#${m.seq}`,
@@ -474,32 +492,71 @@ window.__ModuleLoader__.load({
             t("openChild"), h(Icon, { name: "open" }))));
     }
 
-    function WorkflowPhases({ revision, ui, patch, member, setMember, openMember, t }) {
-      const groups = new Map(revision.phases.map((title) => [title, []]));
+    function phaseGroups(revision, t) {
+      const groups = new Map(revision.phases.map(title => [title, []]));
       for (const m of revision.members) {
         const key = m.phase ?? t("phase");
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(m);
       }
-      return h(React.Fragment, null, ...[...groups].map(([phase, members]) => {
-        const phaseKey = revision.id + ":" + phase;
-        const expanded = ui.phases?.[phaseKey] ??
-          (members.some(m => m.status === "running" || memberIssue(m)) || groups.size === 1);
-        return h("details", {
-          className: "uc-phase", key: phase, open: expanded,
-          onToggle: (e) => {
-            const open = e.currentTarget.open;
-            if (open !== expanded) patch({ phases: { ...ui.phases, [phaseKey]: open } });
-          },
-        },
-          h("summary", null, h(Icon, { name: "chevron" }), h("span", null, phase),
-            h("span", { className: "uc-phase-count" },
-              members.filter(m => m.status === "completed").length, " / ", members.length)),
-          members.length ? members.map(m => h(MemberRow, {
-            key: m.seq, member: m, expanded: member === m.seq,
-            toggle: () => setMember(v => v === m.seq ? null : m.seq), openMember, t,
-          })) : h("div", { className: "uc-empty" }, t("empty")));
-      }), !groups.size && h("div", { className: "uc-empty" }, t("empty")));
+      return [...groups].map(([name, members]) => ({ name, members,
+        done: members.filter(m => m.status === "completed").length,
+        status: members.some(m => ["running", "starting"].includes(m.status)) ? "running"
+          : members.some(m => memberIssue(m)) ? "attention"
+          : members.length && members.every(m => m.status === "completed") ? "completed" : "pending" }));
+    }
+    function PhaseBookmarks({ revision, ui, patch, inspect, t }) {
+      const groups = phaseGroups(revision, t);
+      const active = groups.find(g => g.status === "running") ?? groups.find(g => g.status === "attention")
+        ?? [...groups].reverse().find(g => g.members.length) ?? groups[0];
+      const picked = groups.find(g => g.name === ui.bookmarks?.[revision.id]) ?? active;
+      if (!picked) return h("div", { className: "uc-bookmarks" }, h("div", { className: "uc-empty" }, t("empty")));
+      const index = groups.indexOf(picked), start = Math.max(0, Math.min(index - 1, groups.length - 3));
+      const visible = groups.slice(start, start + 3), position = index - start;
+      const capacity = Math.max(1, Math.min(3, Math.floor((148 - position * 48) / 44)));
+      const priority = m => memberIssue(m) ? 0 : ["running", "starting"].includes(m.status) ? 1 : 2;
+      const members = picked.members.slice().sort((a,b) => priority(a) - priority(b)).slice(0, capacity);
+      const choose = name => patch({ bookmarks: { ...ui.bookmarks, [revision.id]: name } });
+      return h("div", { className: "uc-bookmarks" + (groups.length > 3 ? " uc-many-phases" : ""), style: { "--uc-phase": position } },
+        h("nav", { className: "uc-rail", "aria-label": t("stages") },
+          h("span", { className: "uc-rail-line", style: { height: Math.max(0, visible.length - 1) * 48 }, "aria-hidden": true }),
+          h("span", { className: "uc-rail-selection", "aria-hidden": true }),
+          ...visible.map(g => h("button", { type: "button", className: "uc-node", key: g.name,
+            "aria-label": g.name + " · " + statusText(t, g.status), "aria-current": g === picked ? "step" : undefined,
+            title: g.name + " · " + statusText(t, g.status), onClick: () => choose(g.name) }, h(Dot, { status: g.status })))),
+        ...visible.slice(0, position).map((g,i) => h("button", { type: "button", className: "uc-phase-context", key: g.name,
+          style: { top: 16 + i * 48 }, onClick: () => choose(g.name), title: g.name },
+          h("span", null, g.name), h("small", null, g.members.length ? g.done + " / " + g.members.length : "—"))),
+        h("div", { className: "uc-phase-focus" },
+          h("div", { className: "uc-phase-content", key: picked.name },
+            h("div", { className: "uc-phase-heading" }, h("h4", { title: picked.name }, picked.name),
+              h("small", null, picked.members.length ? picked.done + " / " + picked.members.length : "—")),
+            members.length ? members.map(m => h("button", { type: "button", className: "uc-member uc-member-preview", key: m.seq,
+              title: m.label, onClick: () => inspect(m.seq) }, h(Dot, { status: m.status }),
+              h("span", { className: "uc-member-name" }, m.label || "#" + m.seq,
+                memberIssue(m) && h("small", { className: "uc-cause" }, t(memberIssue(m).cause)))))
+              : h("div", { className: "uc-empty" }, t("empty")),
+            picked.members.length > members.length && h("button", { type: "button", className: "uc-phase-more", onClick: () => inspect(null) },
+              t("moreTasks", { count: picked.members.length - members.length }), h(Icon, { name: "open" })))),
+        groups.length > 3 && h("select", { className: "uc-stage-picker", "aria-label": t("stages"), value: picked.name,
+          onChange: e => choose(e.target.value) }, ...groups.map(g => h("option", { key: g.name, value: g.name }, g.name + " · " + statusText(t,g.status)))),
+        ui.bookmarks?.[revision.id] != null && picked !== active && h("button", { type: "button", className: "uc-follow", onClick: () => choose(null) }, t("follow")));
+    }
+    function WorkflowTasks({ revision, member, setMember, openMember, error, t }) {
+      const ref = useRef(null);
+      useEffect(() => {
+        if (member == null) return;
+        const frame = requestAnimationFrame(() => ref.current?.querySelector('[data-member-seq="' + member + '"]')?.scrollIntoView({ block: "nearest" }));
+        return () => cancelAnimationFrame(frame);
+      }, [member]);
+      return h("div", { ref },
+        error && h("div", { className: "uc-errorbox", role: "alert" }, error),
+        revision.reason && h("p", { className: "uc-task-note" }, revision.reason),
+        revision.error && h("div", { className: "uc-errorbox" }, revision.error),
+        ...phaseGroups(revision, t).map(g => h("section", { className: "uc-task-group", key: g.name },
+          h("h3", null, g.name, h("small", null, g.done + " / " + g.members.length)),
+          g.members.length ? g.members.map(m => h(MemberRow, { key: m.seq, member: m, expanded: member === m.seq,
+            toggle: () => setMember(v => v === m.seq ? null : m.seq), openMember, t })) : h("p", { className: "uc-empty" }, t("empty")))));
     }
 
     function parseOutput(output) {
@@ -508,15 +565,6 @@ window.__ModuleLoader__.load({
       const body = output.replace(/\n\[status: [^\n]*\]\s*$/, "")
         .replace(/\n\nUltracode: the script returned, but these members did not complete: [\s\S]*\. Inspect ultracode_workflows for their causes\. Do not report full success without verifying how these tasks were resolved\.$/, "");
       try { return JSON.parse(body); } catch { return output; }
-    }
-    function resultPreview(value) {
-      if (typeof value === "string") return value.replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
-        .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").replace(/[#*_`>]/g, "").replace(/\s+/g, " ").trim().slice(0, 180);
-      if (value && typeof value === "object") {
-        for (const item of Object.values(value)) { const preview = resultPreview(item); if (preview) return preview; }
-        return JSON.stringify(value);
-      }
-      return String(value ?? "");
     }
     function ResultContent({ value, labels, depth = 0 }) {
       if (typeof value === "string") return h(MarkdownText, { text: value, streaming: false, labels });
@@ -529,7 +577,7 @@ window.__ModuleLoader__.load({
           h(ResultContent, { value: item, labels, depth: depth + 1 })));
       return h("pre", null, JSON.stringify(value, null, 2));
     }
-    function ResultReader({ title, output, value, close, t }) {
+    function ResultReader({ title, output, value, close, t, children }) {
       const ref = useRef(null), backdropPress = useRef(false);
       useEffect(() => {
         const dialog = ref.current, previousFocus = document.activeElement;
@@ -550,8 +598,8 @@ window.__ModuleLoader__.load({
           h("header", { className: "uc-reader-header" }, h(Icon, { name: "document" }),
             h("h2", null, title), h("button", { type: "button", className: "uc-iconbutton", title: t("close"), "aria-label": t("close"), onClick: close }, h(Icon, { name: "close" }))),
           h("div", { className: "uc-reader-body" },
-            h(ResultContent, { value, labels }),
-            h("details", { className: "uc-raw" }, h("summary", null, t("rawResult")), h("pre", null, output)))));
+            (Array.isArray(children) ? children.length > 0 : !!children) ? children : h(React.Fragment, null, h(ResultContent, { value, labels }),
+              h("details", { className: "uc-raw" }, h("summary", null, t("rawResult")), h("pre", null, output))))));
     }
     function WorkflowDock({ sessionId, useProjection, killJob, openChild, t }) {
       const projection = useProjection("ultracode");
@@ -563,6 +611,7 @@ window.__ModuleLoader__.load({
         [confirm, setConfirm] = useState(false),
         [busy, setBusy] = useState(false),
         [reader, setReader] = useState(false),
+        [tasks, setTasks] = useState(false),
         [, tick] = useState(0);
       const pickerRef = useRef(null),
         rootRef = useRef(null);
@@ -605,7 +654,7 @@ window.__ModuleLoader__.load({
         return () => document.removeEventListener("pointerdown", outside);
       }, [menu]);
       const resultValue = useMemo(() => parseOutput(revision?.output || ""), [revision?.output]);
-      useEffect(() => setReader(false), [revision?.id]);
+      useEffect(() => { setReader(false); setTasks(false); setHistory(false); }, [revision?.id]);
       if (!selected || !revision) return null;
       const collapsed = ui.collapsed === true,
         live = ["running", "starting"].includes(revision.status);
@@ -614,6 +663,7 @@ window.__ModuleLoader__.load({
         patch({ workflowId: id, revisionId: null });
         setMenu(false);
         setReader(false);
+        setTasks(false);
         setHistory(false);
         setMember(null);
         setConfirm(false);
@@ -621,6 +671,7 @@ window.__ModuleLoader__.load({
       };
       const selectRevision = (revisionId) => {
         patch({ revisionId });
+        setTasks(false);
         setReader(false);
         setHistory(false);
         setMember(null);
@@ -634,6 +685,7 @@ window.__ModuleLoader__.load({
         else { result.started++; if (m.status === "completed") result.completed++; }
         return result;
       }, { started: 0, completed: 0, reused: 0 });
+      const inspect = seq => { setMember(seq); setError(""); setTasks(true); setReader(false); setHistory(false); };
       const total = revision.members.length, done = counts.completed + counts.reused;
       const progressLabel = total ? done + " / " + total : "—";
       const otherActive = active.filter((w) => w.id !== selected.id);
@@ -661,10 +713,12 @@ window.__ModuleLoader__.load({
         statusText(t, revision.status),
       );
       const footer = h("div", { className: "uc-footer" },
-        live && revision.jobId ? h("button", { type: "button", className: "uc-link", disabled: busy, onClick: stopped },
-          busy ? t("busy") : confirm ? t("confirm") : t("cancel")) : h("span"),
-        h("button", { type: "button", className: "uc-history", onClick: () => setHistory(v => !v), title: t("history") },
-          h(Icon, { name: "history" }), history ? t("back") : t("history")));
+        live && revision.jobId ? h("button", { type: "button", className: "uc-link", disabled: busy, onClick: stopped }, busy ? t("busy") : confirm ? t("confirm") : t("cancel"))
+          : h("span", { title: t("version", { version: revision.number }) }, duration(revision.startedAt, revision.endedAt)),
+        h("div", { className: "uc-footer-actions" },
+          revision.output && h("button", { type: "button", className: "uc-result", onClick: () => setReader(true), title: t("viewResult"), "aria-label": t("viewResult") }, h(Icon, { name: "document" })),
+          h("button", { type: "button", className: "uc-history", onClick: () => setHistory(true), title: t("history"), "aria-label": t("history") }, h(Icon, { name: "history" })),
+          h("button", { type: "button", className: "uc-all-tasks", onClick: () => inspect(null) }, t("allTasks", { count: total }), h(Icon, { name: "open" }))));
       return h(
         "div",
         {
@@ -683,6 +737,10 @@ window.__ModuleLoader__.load({
           },
         },
         h("style", null, CSS),
+        history && h(ResultReader, { title: t("history"), close: () => setHistory(false), t },
+          h(RevisionHistory, { revisions: selected.revisions, selectRevision, t })),
+        tasks && h(ResultReader, { title: revision.title || selected.title, close: () => setTasks(false), t },
+          h(WorkflowTasks, { revision, member, setMember, openMember, error, t })),
         reader && h(ResultReader, { title: revision.title || selected.title, output: revision.output, value: resultValue, close: () => setReader(false), t }),
         !collapsed &&
           h(
@@ -741,11 +799,12 @@ window.__ModuleLoader__.load({
             h(
               "div",
               { className: "uc-body" },
-              h("div", { className: "uc-summary" }, status, h("span", { className: "uc-progress-count", title: t("completed") }, progressLabel)),
+
               h(
                 "div",
                 { className: "uc-title" },
                 h("h3", { title: revision.title || selected.title }, revision.title || selected.title),
+                h("span", { className: "uc-progress-count", title: t("completed") }, progressLabel),
               ),
               h(
                 "div",
@@ -757,10 +816,12 @@ window.__ModuleLoader__.load({
                   " · ",
                   duration(revision.startedAt, revision.endedAt),
                   ),
-                h("span", { title: t("reusedCaution") }, counts.reused > 0 ? t("reused", { count: counts.reused }) : ""),
+                status,
               ),
-              h("div", { className: "uc-progress", role: "progressbar", "aria-label": t("completed"), "aria-valuemin": 0, "aria-valuemax": total || 1, "aria-valuenow": done },
-                h("span", { style: { width: (total ? done / total * 100 : 0) + "%" } })),
+              h("div", { className: "uc-progress" + (live && done > 0 ? " uc-flowing" : ""), role: "progressbar", "aria-label": t("completed"), "aria-valuemin": 0, "aria-valuemax": total || 1, "aria-valuenow": done },
+                h("span", { style: { width: (total ? done / total * 100 : 0) + "%" } },
+                  h("span", { className: "uc-stream", "aria-hidden": true }), h("span", { className: "uc-comet", "aria-hidden": true }),
+                  h("span", { className: "uc-sparks", "aria-hidden": true }, h("i"), h("i"), h("i")))),
               revision.id !== selected.current &&
                 h(
                   "div",
@@ -789,20 +850,9 @@ window.__ModuleLoader__.load({
                 ),
               error &&
                 h("div", { className: "uc-errorbox", role: "alert" }, error),
-              history
-                ? h(RevisionHistory, { revisions: selected.revisions, selectRevision, t })
-                : h(
-                    React.Fragment,
-                    null,
-                    revision.reason &&
-                      h("div", { className: "uc-banner" }, revision.reason),
-                    revision.error &&
-                      h("div", { className: "uc-errorbox" }, revision.error),
-                    h(WorkflowPhases, { revision, ui, patch, member, setMember, openMember, t }),
-                    revision.output && h("button", { type: "button", className: "uc-result", onClick: () => setReader(true), "aria-label": t("viewResult") },
-                      h("span", { className: "uc-result-heading" }, h(Icon, { name: "document" }), t("result"), h(Icon, { name: "open" })),
-                      h("span", { className: "uc-result-preview" }, resultPreview(resultValue))),
-                  ),
+              (revision.error || revision.reason) && h("button", { type: "button", className: "uc-run-note", onClick: () => inspect(null), title: revision.error || revision.reason }, revision.error || revision.reason),
+              h(PhaseBookmarks, { revision, ui, patch, inspect, t }),
+
             ),
             footer,
           ),
