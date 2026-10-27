@@ -22,6 +22,7 @@ async function harness(t, availableDelegation = ["subagent", "subagent_fork"]) {
   ctx.provide("sessionProjections", { stateOf: () => emptyState({ agentPreset: "ultracode" }) });
   ctx.provide("fs", {});
   ctx.provide("workingDirectory", {});
+  ctx.provide("llm", { listProviders: () => [] });
   await ctx.plugin(SystemPrompt, {}).await();
   await ctx.plugin(Tools, {}).await();
   await root.inject(["tools", "systemPrompt"], (injected) => { ctx = injected; }).await();
@@ -66,10 +67,12 @@ async function harness(t, availableDelegation = ["subagent", "subagent_fork"]) {
     assert.match(s.prompt, /Judge the task's complexity yourself/);
     assert.doesNotMatch(s.prompt, /ONLY when explicitly asked/);
     assert.equal(s.tools.filter((x) => x.name === "ultracode_workflows").length, 1);
+    assert.equal(s.tools.filter((x) => x.name === "ultracode_models").length, 1);
     assert(s.tools.find((x) => x.name === "workflow").parameters.properties.agent_limit);
     assert(!s.tools.some(x=>["subagent", "subagent_fork"].includes(x.name)));
   }
   function assertStandard(s) {
+    assert(!s.tools.some(x => x.name === "ultracode_models"));
     assert.match(s.prompt, /ONLY when explicitly asked/);
     assert.doesNotMatch(s.prompt, /Ultracode is selected/);
     assert(!s.tools.some((x) => x.name === "ultracode_workflows"));

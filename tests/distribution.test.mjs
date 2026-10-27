@@ -14,6 +14,8 @@ test("local distribution derives all shipped files and version from the public s
   assert.equal(pkg.version, source.version); assert.equal(lock.version, pkg.version);
   assert.equal(lock.packages[""].name, pkg.name);
   assert.ok(files.has("diagnostics.js")); assert.ok(files.has("inherit.js"));
+  assert.ok(files.has("routing.js")); assert.ok(files.has("engine.js"));
+  assert.equal(pkg.exports["./engine"], "./engine.js");
   assert.ok(files.has("locale/zh.json"));
   assert.ok(files.has("docs/images/ultracode-card.png"));
   assert.ok(![...files.keys()].some(p => /^(node_modules|tests|scripts|\.git)[/\\]/.test(p)));

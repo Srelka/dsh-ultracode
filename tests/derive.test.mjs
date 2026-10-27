@@ -64,6 +64,7 @@ test("only orchestration limits and policy differ; raw expressions and other con
     maxTotalAgents: 40,
   });
   assert.deepEqual(derived[2].config[1], source[2].config[1]);
+  assert.equal(derived[2].config[0].name, "@srelka/dsh-ultracode/engine");
   assert.equal(derived[2].isolate.otherService, true);
   assert.equal(derived[2].config.at(-1).name, "@srelka/dsh-ultracode/preset");
 });

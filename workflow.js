@@ -330,7 +330,7 @@ export function createWorkflowOwner(
         parameters,
         description:
           native.description +
-          "\nUltracode: use script_path for substantive workflows; write the .js file with export const meta first, then call this tool using the short path. Legacy inline script + meta remains supported. Execution is always background. Successful dispatch concludes this turn, so communicate the plan first and dispatch as the final action. New user requests remain available while the workflow runs. Revisions join the previous execution before starting; resume:true replays the exact completed prefix. Preserve the selected model/effort.",
+          "\nUltracode: use script_path for substantive workflows; write the .js file with export const meta first, then call this tool using the short path. Legacy inline script + meta remains supported. Execution is always background. Successful dispatch concludes this turn, so communicate the plan first and dispatch as the final action. New user requests remain available while the workflow runs. Revisions join the previous execution before starting; resume:true replays the exact completed prefix. Children inherit model/effort unless the user explicitly requests overrides: agent(prompt, {provider, model, reasoning_effort}). Discover ids with ultracode_models. A changed model without effort uses its own default.",
         output: {
           schema: { type: "object", additionalProperties: true },
           render: (_args, value) => [

@@ -22,7 +22,7 @@ export function findBaseEntry(loader, basePreset) {
   return entry;
 }
 
-/** Snapshot at activation. Only workflow engine limits and the policy row differ. */
+/** Snapshot at activation. Adapt workflow routing/limits and the orchestration policy. */
 export function derivePlugins(source, config) {
   if (!Array.isArray(source))
     throw new Error("The base preset must declare a plugin list.");
@@ -97,6 +97,7 @@ export function derivePlugins(source, config) {
     );
   // Give the derived orchestrator its own realm, including when the base used a named realm.
   engine.realm.isolate = { ...engine.realm.isolate, workflowEngine: true };
+  engine.row.name = "@srelka/dsh-ultracode/engine";
   engine.row.config = {
     ...engine.row.config,
     maxConcurrentAgents: config.maxConcurrentAgents,

@@ -1,6 +1,6 @@
 {
   "name": "@srelka/dsh-ultracode",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "private": true,
   "type": "module",
   "description": "Derive Ultracode from the effective standard preset at startup; override orchestration only.",
@@ -22,7 +22,8 @@
     "./inherit/icon": "./icon.svg",
     "./unavailable": "./unavailable.js",
     "./unavailable/locale/*.json": "./locale/*.json",
-    "./unavailable/icon": "./icon.svg"
+    "./unavailable/icon": "./icon.svg",
+    "./engine": "./engine.js"
   },
   "files": [
     "index.js",
@@ -42,7 +43,9 @@
     "inherit.js",
     "derive.js",
     "host-api.js",
-    "unavailable.js"
+    "unavailable.js",
+    "engine.js",
+    "routing.js"
   ],
   "dsh": {
     "bundle": {

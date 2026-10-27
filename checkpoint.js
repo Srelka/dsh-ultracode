@@ -1,3 +1,4 @@
+import { ROUTE_PREFIX } from "./routing.js";
 export const CHECKPOINT_RECORD = "plugin:ultracode/checkpoint";
 
 export function foldCheckpoint(state, event) {
@@ -48,7 +49,12 @@ const __ucAgentFn = async (prompt, options) => {
   __ucReuse = false;
   const nativeIndex = ++__ucMiss;
   __ucEmit({kind:'begin', index, nativeIndex, key, label:opts.label || 'Agent ' + index, phase:opts.phase || __ucPhase});
-  const value = await __ucNativeAgent(prompt, options);
+  let nativeOptions = options;
+  if (opts.reasoning_effort !== undefined) {
+    const { provider, model, reasoning_effort, ...rest } = opts;
+    nativeOptions = {...rest, model: ${JSON.stringify(ROUTE_PREFIX)} + JSON.stringify({provider, model, reasoning_effort})};
+  }
+  const value = await __ucNativeAgent(prompt, nativeOptions);
   __ucEmit({kind:'result', index, nativeIndex, key, value, label:opts.label || 'Agent ' + index, phase:opts.phase || __ucPhase});
   return value;
 };
